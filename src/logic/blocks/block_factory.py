@@ -25,24 +25,31 @@ class BlockFactory:
                 klines_df_slice["close"] < klines_df_slice["open"]
             ]
 
-        return int(candles_of_color.iloc[-1].name)
+        try:
+            return int(candles_of_color.iloc[-1].name)
+        except IndexError:
+            return None
 
     @staticmethod
     def find_order_block_in_leg(
-        leg_df: DataFrame, direction: str, start_time: Timestamp
+        leg_df: DataFrame,
+        direction: str,
+        start_time: Timestamp,
     ) -> Block | None:
         """
         This function takes a leg_df which is a slice of the klines DataFrame,
         and returns the potential order block in the leg. A bullish order block forms on the
         last red candle of the leg after the MSB, and a bearish order block forms on the
-        last green candle of the leg after the MSB.
+        last green candle of the leg after the MSB. The start time of the block is set to
+        the candle that forms the leg that breaks and forms the MSB line.
 
         Args:
             leg_df: A DataFrame slice of klines data.
             direction: The direction of the order block to find, bullish or bearish.
+            start_time: The time of the candle that the block is actually found.
 
         Returns:
-            OrderBlock: The potential order block in the leg.
+            Block: The potential order block in the leg.
         """
         if direction == "bullish":
             base_candle_index = BlockFactory.find_last_candle_of_color(leg_df, "red")
@@ -66,7 +73,9 @@ class BlockFactory:
 
     @staticmethod
     def find_breaker_mitigation_block_in_leg(
-        leg_df: DataFrame, direction: str, start_time: Timestamp
+        leg_df: DataFrame,
+        direction: str,
+        start_time: Timestamp,
     ) -> Block | None:
         """
         This function takes a leg_df which is a slice of the klines DataFrame,
@@ -77,9 +86,10 @@ class BlockFactory:
         Args:
             leg_df: A DataFrame slice of klines data.
             direction: The direction of the order block to find, bullish or bearish.
+            start_time: The time of the candle that the block is actually found.
 
         Returns:
-            BreakerBlock | MitigationBlock: The potential order block in the leg.
+            Block: The potential mitigation block in the leg.
         """
         if direction == "bullish":
             base_candle_index = BlockFactory.find_last_candle_of_color(leg_df, "green")
