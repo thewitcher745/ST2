@@ -1,4 +1,5 @@
 from pandas import DataFrame, Timestamp
+import numpy as np
 
 from .block import Block
 
@@ -16,17 +17,17 @@ class BlockFactory:
         Returns:
             The index of the last candle of the given color.
         """
+        close_values = klines_df_slice["close"]
+        open_values = klines_df_slice["open"]
+        first_index = klines_df_slice.iloc[0].name
+
         if color == "green":
-            candles_of_color = klines_df_slice[
-                klines_df_slice["close"] > klines_df_slice["open"]
-            ]
+            candles_of_color = np.where(close_values > open_values)[0]
         else:
-            candles_of_color = klines_df_slice[
-                klines_df_slice["close"] < klines_df_slice["open"]
-            ]
+            candles_of_color = np.where(close_values < open_values)[0]
 
         try:
-            return int(candles_of_color.iloc[-1].name)
+            return int(candles_of_color[-1] + first_index)
         except IndexError:
             return None
 
