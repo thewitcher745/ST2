@@ -1,1 +1,3 @@
-from .zigzag import Zigzag
+from .structure.zigzag import Zigzag
+
+__all__ = ["Zigzag"]
