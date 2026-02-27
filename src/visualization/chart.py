@@ -34,7 +34,12 @@ class ChartManager:
         )
 
     def add_candlesticks(self, df: DataFrame, name: str = "Price"):
-        """Adds candlestick traces to the figure."""
+        """Adds candlestick traces to the figure with index in tooltip."""
+        
+        # Ensure we have the integer index available as an array
+        # We use reset_index if 'klines_df_index' isn't a column, or just df.index
+        df_indices = df.index
+        print(df_indices)
         self._fig.add_trace(
             go.Candlestick(
                 x=df["time"],
@@ -45,6 +50,16 @@ class ChartManager:
                 name=name,
                 increasing_line_color="#26a69a",
                 decreasing_line_color="#ef5350",
+                # Pass the index to the frontend
+                customdata=df_indices,
+                # Update the template to show the index (i)
+                hovertemplate=(
+                    "<b>Index (i): %{customdata}</b><br>" +
+                    "O: %{open}<br>" +
+                    "H: %{high}<br>" +
+                    "L: %{low}<br>" +
+                    "C: %{close}<extra></extra>"
+                )
             )
         )
 
@@ -54,7 +69,6 @@ class ChartManager:
             self._should_zoom = True
         else:
             self._should_zoom = False
-
     def _apply_zoom(self):
         """Applies the zoom to the chart."""
         if hasattr(self, "_should_zoom") and self._should_zoom:
