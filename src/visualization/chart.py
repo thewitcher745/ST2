@@ -35,11 +35,11 @@ class ChartManager:
 
     def add_candlesticks(self, df: DataFrame, name: str = "Price"):
         """Adds candlestick traces to the figure with index in tooltip."""
-        
+
         # Ensure we have the integer index available as an array
         # We use reset_index if 'klines_df_index' isn't a column, or just df.index
         df_indices = df.index
-        print(df_indices)
+
         self._fig.add_trace(
             go.Candlestick(
                 x=df["time"],
@@ -54,12 +54,12 @@ class ChartManager:
                 customdata=df_indices,
                 # Update the template to show the index (i)
                 hovertemplate=(
-                    "<b>Index (i): %{customdata}</b><br>" +
-                    "O: %{open}<br>" +
-                    "H: %{high}<br>" +
-                    "L: %{low}<br>" +
-                    "C: %{close}<extra></extra>"
-                )
+                    "<b>Index (i): %{customdata}</b><br>"
+                    + "O: %{open}<br>"
+                    + "H: %{high}<br>"
+                    + "L: %{low}<br>"
+                    + "C: %{close}<extra></extra>"
+                ),
             )
         )
 

@@ -37,7 +37,7 @@ class BinanceDataProvider(DataProvider):
                 raise ValueError("No data returned from Binance")
 
             df = DataFrame(raw_data).iloc[:, :5]  # Take first 5 columns
-            print(df)
+
             # Sanitize and name the dataframe columns
             cols = ["time", "open", "high", "low", "close"]
             df.columns = cols
