@@ -5,12 +5,18 @@ import numpy as np
 
 
 class MSBIdentifier:
-    def __init__(self):
+    def __init__(self, fib_factor: float = 0.33):
         """
         Initializes 3-pivot patterns for Market Structure Breaks (MSB).
         A break is defined by the transition from a trend-continuation
         pivot to a trend-reversal pivot.
+
+        Args:
+            fib_factor (float): The ratio which the leg breaking a potential swing high or swing low
+            must exceed in order to confirm an MSB
         """
+        self.fib_factor = fib_factor
+
         # Bullish MSB: Transition from LH to HH
         self.bullish_patterns = [("LH", "LL", "HH"), ("LH", "HL", "HH")]
 
@@ -19,7 +25,7 @@ class MSBIdentifier:
 
     def _match_sequence(
         self, sequence: np.ndarray
-    ) -> Optional[Dict[str, Union[str, int]]]:
+    ) -> Optional[Dict[str, Union[str, int, tuple]]]:
         """Matches a 3-pivot window against MSB definitions."""
         seq_tuple = tuple(sequence)
 
@@ -32,43 +38,89 @@ class MSBIdentifier:
         return None
 
     def find_all_matches(
-        self, structure_list: List[str], klines_indices: List[int]
+        self, structure_list: list, klines_indices: list, pivot_values: list
     ) -> DataFrame:
         """
-        Scans for 3-pivot MSB patterns and anchors them to the START of the pattern.
+        Scans for 4-pivot patterns where Pivot 1 is the MSB level.
+
+        Leg Before: Pivot 0 -> Pivot 1
+        Leg After:  Pivot 1 -> Pivot 2
+        Confirmation: Pivot 3 breaks Pivot 1
         """
-        if len(structure_list) < 3:
-            return DataFrame(columns=["direction", "pivot_index", "kline_index"])
+        if len(structure_list) < 4:
+            return DataFrame(
+                columns=[
+                    "direction",
+                    "pivot_index",
+                    "kline_index",
+                    "break_level",
+                    "leg_before",
+                    "leg_after",
+                ]
+            )
 
         tags = np.array(structure_list)
         k_idx = np.array(klines_indices)
+        prices = np.array(pivot_values)
 
-        # 1. Create 3-pivot sliding windows
-        # We start from the beginning of tags. window[0] = tags[0, 1, 2]
-        windows = sliding_window_view(tags, 3)
+        # 1. Create 4-pivot windows
+        tag_windows = sliding_window_view(tags, 4)
+        price_windows = sliding_window_view(prices, 4)
 
-        # 2. Map the matches
-        matches = [self._match_sequence(w) for w in windows]
-
-        # 3. Filter and build results
         results = []
-        for i, match in enumerate(matches):
-            if match:
-                # Can't have two same direction MSB's, so skip if the last one has the same
-                # direction
-                if results and results[-1]["direction"] == match["direction"]:
-                    continue
+        for i, (tags_win, prices_win) in enumerate(zip(tag_windows, price_windows)):
+            # We match based on the 'broken' pivot (index 1) and 'breaking' pivot (index 3)
+            # Bullish: Pivot 1 was a LH, Pivot 3 is a HH
+            # Bearish: Pivot 1 was a HL, Pivot 3 is a LL
 
-                start_pivot_idx = i
+            p0, p1, p2, p3 = prices_win
+            t1, t3 = tags_win[1], tags_win[3]
 
-                result_entry = match.copy()
-                result_entry["pivot_index"] = start_pivot_idx
-                result_entry["kline_index"] = k_idx[start_pivot_idx]
+            direction = None
+            if t1 == "LH" and t3 == "HH":
+                direction = "bullish"
+            elif t1 == "HL" and t3 == "LL":
+                direction = "bearish"
 
-                results.append(result_entry)
+            if direction:
+                # Fib confirmation: Does P3 break P1 significantly relative to the P1-P2 leg?
+                leg_range = abs(p1 - p2)
+                threshold = leg_range * self.fib_factor
+
+                confirmed = False
+                if direction == "bullish" and p3 > (p1 + threshold):
+                    confirmed = True
+                elif direction == "bearish" and p3 < (p1 - threshold):
+                    confirmed = True
+
+                if confirmed:
+                    # Prevent consecutive MSBs in the same direction
+                    if results and results[-1]["direction"] == direction:
+                        continue
+
+                    results.append(
+                        {
+                            "direction": direction,
+                            "pivot_index": i + 1,  # Anchored to the broken pivot
+                            "kline_index": int(k_idx[i + 1]),
+                            "break_level": p1,
+                            # The two consecutive legs joining at the MSB (p1)
+                            "leg_before": (int(k_idx[i]), int(k_idx[i + 1])),
+                            "leg_after": (int(k_idx[i + 1]), int(k_idx[i + 2])),
+                        }
+                    )
 
         return (
             DataFrame(results)
             if results
-            else DataFrame(columns=["direction", "pivot_index", "kline_index"])
+            else DataFrame(
+                columns=[
+                    "direction",
+                    "pivot_index",
+                    "kline_index",
+                    "break_level",
+                    "leg_before",
+                    "leg_after",
+                ]
+            )
         )
