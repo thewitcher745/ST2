@@ -38,7 +38,11 @@ class MSBIdentifier:
         return None
 
     def find_all_matches(
-        self, structure_list: list, klines_indices: list, pivot_values: list
+        self,
+        structure_list: list,
+        klines_indices: list,
+        pivot_values: list,
+        pivot_formation_indices: list,
     ) -> DataFrame:
         """
         Scans for 4-pivot patterns where Pivot 1 is the MSB level.
@@ -51,6 +55,7 @@ class MSBIdentifier:
             return DataFrame(
                 columns=[
                     "direction",
+                    "formation_index",
                     "pivot_index",
                     "kline_index",
                     "break_level",
@@ -97,10 +102,14 @@ class MSBIdentifier:
                     # Prevent consecutive MSBs in the same direction
                     if results and results[-1]["direction"] == direction:
                         continue
-
+                    # pivot_formation_indices[i + 3] comes from the fact that i is the first leg in the 4-leg arrangment
+                    # of legs that forms the MSB confirmation. i + 1 is the leg from the MSB to the valley after it. i + 2 is
+                    # the move that breaks the swing high or swing low. i + 3 is the movement that forms the final pivot and
+                    # the 3rd leg of the move.
                     results.append(
                         {
                             "direction": direction,
+                            "formation_index": pivot_formation_indices[i + 3],
                             "pivot_index": i + 1,  # Anchored to the broken pivot
                             "kline_index": int(k_idx[i + 1]),
                             "break_level": p1,
@@ -116,6 +125,7 @@ class MSBIdentifier:
             else DataFrame(
                 columns=[
                     "direction",
+                    "formation_index",
                     "pivot_index",
                     "kline_index",
                     "break_level",
