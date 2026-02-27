@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 from pandas import DataFrame
 import numpy as np
 
+
 class ChartManager:
     """
     Handles the visualization of trading data.
@@ -20,18 +21,36 @@ class ChartManager:
         self._setup_layout()
 
     def _setup_layout(self):
-        """Initializes the dark theme and layout settings."""
+        """Unlocks the axes for independent zooming and panning."""
         self._fig.update_layout(
             template="plotly_dark",
             hovermode="x unified",
-            dragmode="pan",
+            dragmode="zoom",
             xaxis_rangeslider_visible=False,
             title=self.title,
             autosize=True,
             width=1800,
             height=900,
             margin=dict(l=20, r=20, t=40, b=20),
+            # Configure X-axis interaction
+            xaxis=dict(
+                fixedrange=False,  # Essential: Allows the axis to be changed
+                title="Time",
+                # This ensures the axis labels react to the mouse
+                anchor="y",
+                side="bottom",
+            ),
+            # Configure Y-axis interaction
+            yaxis=dict(
+                fixedrange=False,  # Essential: Allows the axis to be changed
+                title="Price",
+                side="right",  # Put price on the right like TradingView
+                autorange=True,  # Fits candles to height automatically
+            ),
         )
+
+        # This allows you to scroll to zoom on one axis at a time
+        self._fig.update_layout(xaxis_scaleanchor=None)
 
     def add_candlesticks(self, df: DataFrame, name: str = "Price"):
         """Adds candlestick traces to the figure with index in tooltip."""
@@ -79,7 +98,9 @@ class ChartManager:
             return
 
         # Determine position: Peaks (1) go 'top center', Valleys (-1) go 'bottom center'
-        text_positions = np.where(zigzag_df["pivot_type"] == 1, "top center", "bottom center")
+        text_positions = np.where(
+            zigzag_df["pivot_type"] == 1, "top center", "bottom center"
+        )
 
         self._fig.add_trace(
             go.Scatter(
@@ -88,12 +109,9 @@ class ChartManager:
                 mode="lines+text",  # Enable text labels
                 name=name,
                 # The text to display (HH, HL, etc.)
-                text=zigzag_df["structure"], 
+                text=zigzag_df["structure"],
                 textposition=text_positions,
-                textfont=dict(
-                    size=12,
-                    color="rgba(255, 255, 255, 0.8)"
-                ),
+                textfont=dict(size=12, color="rgba(255, 255, 255, 0.8)"),
                 line=dict(color="rgba(255, 255, 255, 0.5)", width=2),
                 hoverinfo="skip",
                 hovertemplate=None,
@@ -105,16 +123,20 @@ class ChartManager:
         if hasattr(self, "_should_zoom") and self._should_zoom:
             self._fig.update_xaxes(range=[self._zoom_start, self._zoom_end])
 
-    def save(self, auto_open=False):
-        """
-        Saves the chart to an HTML file.
-        """
-        self._apply_zoom()
-        # Save the basic Plotly HTML
-        self._fig.write_html(self.output_file, auto_open=auto_open)
-
-        print(f"--- Chart updated at {self.output_file} ---")
-
     def show(self):
         self._apply_zoom()
-        self._fig.show()
+        # The scrollZoom config enables the 'zoom-where-hovered' behavior
+        self._fig.show(
+            config={
+                "scrollZoom": True,
+                "displayModeBar": True,
+                "modeBarButtonsToRemove": ["select2d", "lasso2d"],
+            }
+        )
+
+    def save(self, auto_open=False):
+        self._apply_zoom()
+        # When saving to HTML, you can include the config here
+        self._fig.write_html(
+            self.output_file, auto_open=auto_open, config={"scrollZoom": True}
+        )
