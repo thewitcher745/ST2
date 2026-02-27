@@ -1,3 +1,4 @@
+from typing import Any
 import plotly.graph_objects as go
 from pandas import DataFrame
 import numpy as np
@@ -177,6 +178,56 @@ class ChartManager:
                 line=dict(color=color, width=2),
             )
 
+    def add_blocks(self, blocks_df: DataFrame, last_time: Any):
+        """
+        Draws boxes: Green for all Bullish, Red for all Bearish.
+        """
+        if blocks_df.empty:
+            return
+
+        for _, row in blocks_df.iterrows():
+            # 1. Logic: Green for Bullish, Red for Bearish
+            if row["direction"] == "bullish":
+                base_color = "38, 166, 154"  # Emerald Green
+            else:
+                base_color = "239, 83, 80"   # Soft Red
+
+            # 2. Subtle Opacity difference: OBs are more solid, BB/MBs are lighter
+            opacity = 0.35 if row["type"] == "OB" else 0.15
+            
+            fill_color = f"rgba({base_color}, {opacity})"
+            line_color = f"rgba({base_color}, 0.8)"
+
+            # 3. Determine horizontal extent (handle None)
+            end_x = row["end_time"] if row["end_time"] is not None else last_time
+
+            # 4. Draw the Box
+            self._fig.add_shape(
+                type="rect",
+                x0=row["start_time"],
+                y0=row["low"],
+                x1=end_x,
+                y1=row["high"],
+                fillcolor=fill_color,
+                line=dict(color=line_color, width=1),
+                layer="below",
+                xref="x",
+                yref="y"
+            )
+            
+            # Optional: Label the specific type in the corner of the box
+            self._fig.add_trace(
+                go.Scatter(
+                    x=[row["start_time"]],
+                    y=[row["high"]],
+                    mode="text",
+                    text=[f"{row['type']}"],
+                    textposition="top right",
+                    textfont=dict(size=9, color=line_color),
+                    showlegend=False,
+                    hoverinfo="skip"
+                )
+            )
     def _apply_zoom(self):
         """Applies the zoom to the chart."""
         if hasattr(self, "_should_zoom") and self._should_zoom:
