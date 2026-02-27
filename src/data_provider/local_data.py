@@ -18,7 +18,7 @@ class LocalDataProvider(DataProvider):
 
         # Make sure the caching directory exists
         os.makedirs(self.cache_parent_dir, exist_ok=True)
-        self.live_data_provider = live_data_provider()
+        self.live_data_provider = live_data_provider
 
     def get_latest_klines(
         self, symbol: str, interval: str, time_delta: timedelta = timedelta(days=10)
@@ -29,7 +29,7 @@ class LocalDataProvider(DataProvider):
         # Fetch live data and cache it if a local cache doesn't exist
         if not os.path.exists(file_path):
             # Fetch data from live provider and cache it
-            data = self.live_data_provider.get_latest_klines(
+            data = self.live_data_provider().get_latest_klines(
                 symbol, interval, time_delta
             )
 
