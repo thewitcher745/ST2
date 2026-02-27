@@ -117,6 +117,66 @@ class ChartManager:
             )
         )
 
+    def add_msb(self, msb_df: DataFrame, zigzag_df: DataFrame):
+        """
+        Draws Market Structure Break (MSB) lines and labels.
+        MSB lines are drawn at the price level of the broken pivot.
+        """
+        if msb_df.empty or zigzag_df.empty:
+            return
+
+        # Prepare zigzag data for lookup
+        zz_temp = zigzag_df.copy().reset_index().rename(columns={"index": "zz_idx"})
+
+        # Merge MSB results with Zigzag data to get coordinates
+        # We need the price of the pivot that was BROKEN.
+        # For a 3-pivot pattern (0, 1, 2), the 'broken' level is usually pivot 1.
+        merged = msb_df.merge(
+            zz_temp[["zz_idx", "pivot_value", "time"]],
+            left_on="pivot_index",
+            right_on="zz_idx",
+        )
+
+        for _, row in merged.iterrows():
+            color = "#26a69a" if row["direction"] == "bullish" else "#ef5350"
+
+            # 1. Add the MSB Label
+            self._fig.add_trace(
+                go.Scatter(
+                    x=[row["time"]],
+                    y=[row["pivot_value"]],
+                    mode="markers+text",
+                    name=f"MSB {row['direction']}",
+                    text=["MSB"],
+                    textposition="top center"
+                    if row["direction"] == "bullish"
+                    else "bottom center",
+                    marker=dict(size=8, color=color, symbol="diamond-open"),
+                    textfont=dict(color=color, size=11, family="Arial Black"),
+                    showlegend=False,
+                )
+            )
+
+            # 2. Add a horizontal line to show the break level
+            # Draw from the MSB pivot to the pivot 2 positions after
+            target_idx = row["zz_idx"] + 2
+            if target_idx < len(zz_temp):
+                end_time = zz_temp.iloc[target_idx]["time"]
+            else:
+                end_time = row["time"]  # Fallback if not enough pivots
+
+            self._fig.add_shape(
+                type="line",
+                x0=row["time"],
+                y0=row["pivot_value"],
+                x1=end_time,
+                y1=row["pivot_value"],
+                name="MSB",
+                xref="x",
+                yref="y",
+                line=dict(color=color, width=2),
+            )
+
     def _apply_zoom(self):
         """Applies the zoom to the chart."""
         if hasattr(self, "_should_zoom") and self._should_zoom:
