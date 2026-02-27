@@ -87,7 +87,29 @@ class Zigzag:
                     # New Leg
                     pivots.append(self._make_dict(i, times[i], val, -1))
                     last_type = -1
-        return DataFrame(pivots)
+
+        zigzag_df = DataFrame(pivots)
+
+        # 3. Detect lower lows, lower highs, lower highs and higher highs
+        values = zigzag_df["pivot_value"].to_numpy()
+        types = zigzag_df["pivot_type"].to_numpy()
+
+        # Initialize an array of empty strings (shorter strings = less memory)
+        structure = np.full(len(zigzag_df), "", dtype="U2")
+
+        # We start from the 3rd pivot because we need a previous pivot of the same type to compare
+        for i in range(2, len(zigzag_df)):
+            current_val = values[i]
+            prev_same_type_val = values[i - 2]
+
+            if types[i] == 1:  # Current is a PEAK
+                structure[i] = "HH" if current_val > prev_same_type_val else "LH"
+            else:  # Current is a VALLEY
+                structure[i] = "LL" if current_val < prev_same_type_val else "HL"
+
+        zigzag_df["structure"] = structure
+
+        return zigzag_df
 
     @staticmethod
     def _make_dict(idx, time, val, p_type):

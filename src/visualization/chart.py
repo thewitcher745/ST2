@@ -1,6 +1,6 @@
 import plotly.graph_objects as go
 from pandas import DataFrame
-
+import numpy as np
 
 class ChartManager:
     """
@@ -72,21 +72,30 @@ class ChartManager:
 
     def add_zigzag(self, zigzag_df: DataFrame, name: str = "Zigzag"):
         """
-        Adds the zigzag line using the zigzag_df.
-        Expects columns: [time, pivot_value, zigzag_type]
+        Adds the zigzag line with HH, LH, HL, LL text labels.
+        Expects columns: [time, pivot_value, pivot_type, structure]
         """
         if zigzag_df.empty:
             return
+
+        # Determine position: Peaks (1) go 'top center', Valleys (-1) go 'bottom center'
+        text_positions = np.where(zigzag_df["pivot_type"] == 1, "top center", "bottom center")
 
         self._fig.add_trace(
             go.Scatter(
                 x=zigzag_df["time"],
                 y=zigzag_df["pivot_value"],
-                mode="lines",
+                mode="lines+text",  # Enable text labels
                 name=name,
-                # Styling the line and markers
-                line=dict(color="rgba(255, 255, 255, 0.9)", width=2),
-                hoverinfo="none",
+                # The text to display (HH, HL, etc.)
+                text=zigzag_df["structure"], 
+                textposition=text_positions,
+                textfont=dict(
+                    size=12,
+                    color="rgba(255, 255, 255, 0.8)"
+                ),
+                line=dict(color="rgba(255, 255, 255, 0.5)", width=2),
+                hoverinfo="skip",
                 hovertemplate=None,
             )
         )
