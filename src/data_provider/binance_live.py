@@ -35,12 +35,15 @@ class BinanceDataProvider(DataProvider):
             # Raise an exception if no data is returned
             if raw_data is None:
                 raise ValueError("No data returned from Binance")
-                
-            df = DataFrame(raw_data).iloc[:, :6]  # Take first 6 columns
 
+            df = DataFrame(raw_data).iloc[:, :5]  # Take first 5 columns
+            print(df)
             # Sanitize and name the dataframe columns
-            df.columns = ["time", "open", "high", "low", "close", "volume"]
-            df["time"] = to_datetime(df["time"], unit="ms", utc=True)
+            cols = ["time", "open", "high", "low", "close"]
+            df.columns = cols
+            df["time"] = to_datetime(df["time"], unit="ms", utc=True).dt.tz_convert(None)
+            float_cols = ["open", "high", "low", "close"]
+            df[float_cols] = df[float_cols].astype(float)
 
             return df
 
