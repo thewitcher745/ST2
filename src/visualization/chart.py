@@ -69,6 +69,28 @@ class ChartManager:
             self._should_zoom = True
         else:
             self._should_zoom = False
+
+    def add_zigzag(self, zigzag_df: DataFrame, name: str = "Zigzag"):
+        """
+        Adds the zigzag line using the zigzag_df.
+        Expects columns: [time, pivot_value, zigzag_type]
+        """
+        if zigzag_df.empty:
+            return
+
+        self._fig.add_trace(
+            go.Scatter(
+                x=zigzag_df["time"],
+                y=zigzag_df["pivot_value"],
+                mode="lines",
+                name=name,
+                # Styling the line and markers
+                line=dict(color="rgba(255, 255, 255, 0.9)", width=2),
+                hoverinfo="none",
+                hovertemplate=None,
+            )
+        )
+
     def _apply_zoom(self):
         """Applies the zoom to the chart."""
         if hasattr(self, "_should_zoom") and self._should_zoom:
