@@ -39,6 +39,8 @@ class Zigzag:
         # Convert columns to NumPy arrays for raw memory speed
         highs = klines_df["high"].to_numpy()
         lows = klines_df["low"].to_numpy()
+        closes = klines_df["close"].to_numpy()
+        opens = klines_df["open"].to_numpy()
         times = klines_df["time"].to_numpy()
 
         # 1. Vectorized calculation of local extremes
@@ -68,11 +70,31 @@ class Zigzag:
         last_type = 0  # 0: None, 1: Peak, -1: Valley
 
         for i in range(self.window_size - 1, n):
-            if is_peak_array[i]:
+            # If the candle registers both a valley and a peak, change the direction and register a pivot.
+            if is_peak_array[i] and is_valley_array[i]:
+                is_red = closes[i] < opens[i]
+
+                if is_red:
+                    # Logic: Hit Peak first, then Valley.
+                    # 1. Did the Peak part of this candle extend the previous High leg?
+                    if last_type == 1 and highs[i] > pivots[-1]["pivot_value"]:
+                        pivots[-1] = self._make_dict(i, times[i], highs[i], 1)
+
+                    # 2. Now register the reversal to the Valley (the "later" data)
+                    if last_type != -1:
+                        pivots.append(self._make_dict(i, times[i], lows[i], -1))
+                        last_type = -1
+                    else:
+                        # If we were already in a valley, just extend it
+                        if lows[i] < pivots[-1]["pivot_value"]:
+                            pivots[-1] = self._make_dict(i, times[i], lows[i], -1)
+
+            elif is_peak_array[i]:
                 val = highs[i]
                 if last_type == 1:
-                    # Extend the previous leg
-                    pivots[-1] = self._make_dict(i, times[i], val, 1)
+                    # Extend the previous leg only if the current pivot has a higher value
+                    if val > pivots[-1]["pivot_value"]:
+                        pivots[-1] = self._make_dict(i, times[i], val, 1)
                 else:
                     # New Leg
                     pivots.append(self._make_dict(i, times[i], val, 1))
@@ -81,8 +103,9 @@ class Zigzag:
             elif is_valley_array[i]:
                 val = lows[i]
                 if last_type == -1:
-                    # Extend the previous leg
-                    pivots[-1] = self._make_dict(i, times[i], val, -1)
+                    # Extend the previous leg only if the current pivot has a lower value
+                    if val < pivots[-1]["pivot_value"]:
+                        pivots[-1] = self._make_dict(i, times[i], val, -1)
                 else:
                     # New Leg
                     pivots.append(self._make_dict(i, times[i], val, -1))
