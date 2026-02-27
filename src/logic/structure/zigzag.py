@@ -33,7 +33,7 @@ class Zigzag:
         n = len(klines_df)
         if n < self.window_size:
             return DataFrame(
-                columns=["klines_df_index", "time", "pivot_value", "pivot_type"]
+                columns=["kline_index", "time", "pivot_value", "pivot_type"]
             )
 
         # Convert columns to NumPy arrays for raw memory speed
@@ -137,7 +137,7 @@ class Zigzag:
     @staticmethod
     def _make_dict(idx, time, val, p_type):
         return {
-            "klines_df_index": idx,
+            "kline_index": idx,
             "time": time,
             "pivot_value": val,
             "pivot_type": p_type,

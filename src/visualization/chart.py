@@ -56,7 +56,6 @@ class ChartManager:
         """Adds candlestick traces to the figure with index in tooltip."""
 
         # Ensure we have the integer index available as an array
-        # We use reset_index if 'klines_df_index' isn't a column, or just df.index
         df_indices = df.index
 
         self._fig.add_trace(
