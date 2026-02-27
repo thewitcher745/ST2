@@ -2,6 +2,7 @@ from pandas import DataFrame
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
+
 class Zigzag:
     def __init__(self, window_size: int = 9):
         self.window_size = window_size
@@ -9,7 +10,15 @@ class Zigzag:
     def calculate(self, klines_df: DataFrame) -> DataFrame:
         n = len(klines_df)
         if n < self.window_size:
-            return DataFrame(columns=["kline_index", "time", "pivot_value", "pivot_type", "pivot_formation_index"])
+            return DataFrame(
+                columns=[
+                    "kline_index",
+                    "time",
+                    "pivot_value",
+                    "pivot_type",
+                    "pivot_formation_index",
+                ]
+            )
 
         highs = klines_df["high"].to_numpy()
         lows = klines_df["low"].to_numpy()
@@ -25,9 +34,13 @@ class Zigzag:
         is_peak_array = np.zeros(n, dtype=bool)
         is_valley_array = np.zeros(n, dtype=bool)
 
-        # A candle is a peak if it is strictly higher than all highs in the previous N candles
-        is_peak_array[self.window_size:] = highs[self.window_size:] > np.max(win_highs[:-1], axis=1)
-        is_valley_array[self.window_size:] = lows[self.window_size:] < np.min(win_lows[:-1], axis=1)
+        # A candle is a peak if it's the max of its own lookback window
+        is_peak_array[self.window_size - 1 :] = highs[self.window_size - 1 :] > np.max(
+            win_highs[:, :-1], axis=1
+        )
+        is_valley_array[self.window_size - 1 :] = lows[self.window_size - 1 :] < np.min(
+            win_lows[:, :-1], axis=1
+        )
 
         pivots = []
         last_type = 0  # 1: Peak, -1: Valley
@@ -38,22 +51,36 @@ class Zigzag:
                 # If candle is Red, assume High hit first, then Low
                 if closes[i] < opens[i]:
                     order = [(highs[i], 1), (lows[i], -1)]
-                else: # Green candle: Low hit first, then High
+                else:  # Green candle: Low hit first, then High
                     order = [(lows[i], -1), (highs[i], 1)]
-                
+
                 for val, p_type in order:
-                    last_type = self._process_pivot(pivots, i, times[i], val, p_type, last_type)
+                    last_type = self._process_pivot(
+                        pivots, i, times[i], val, p_type, last_type
+                    )
 
             # Case B: Only a Peak
             elif is_peak_array[i]:
-                last_type = self._process_pivot(pivots, i, times[i], highs[i], 1, last_type)
+                last_type = self._process_pivot(
+                    pivots, i, times[i], highs[i], 1, last_type
+                )
 
             # Case C: Only a Valley
             elif is_valley_array[i]:
-                last_type = self._process_pivot(pivots, i, times[i], lows[i], -1, last_type)
+                last_type = self._process_pivot(
+                    pivots, i, times[i], lows[i], -1, last_type
+                )
 
         if not pivots:
-            return DataFrame(columns=["kline_index", "time", "pivot_value", "pivot_type", "pivot_formation_index"])
+            return DataFrame(
+                columns=[
+                    "kline_index",
+                    "time",
+                    "pivot_value",
+                    "pivot_type",
+                    "pivot_formation_index",
+                ]
+            )
 
         zigzag_df = DataFrame(pivots)
 
@@ -75,8 +102,9 @@ class Zigzag:
         """Handles logic for extending an existing leg or starting a new one."""
         if last_type == p_type:
             # Same type: Check for extension
-            if (p_type == 1 and val > pivots[-1]["pivot_value"]) or \
-               (p_type == -1 and val < pivots[-1]["pivot_value"]):
+            if (p_type == 1 and val > pivots[-1]["pivot_value"]) or (
+                p_type == -1 and val < pivots[-1]["pivot_value"]
+            ):
                 pivots[-1] = self._make_dict(idx, time, val, p_type, 0)
         else:
             # Reversal: New leg
@@ -89,9 +117,9 @@ class Zigzag:
     @staticmethod
     def _make_dict(idx, time, val, p_type, p_formation_idx):
         return {
-            "kline_index": idx,           # Where the price point actually is
-            "time": time,                 # Timestamp of the price point
-            "pivot_value": val,           # High or Low value
-            "pivot_type": p_type,         # 1 for Peak, -1 for Valley
-            "pivot_formation_index": p_formation_idx, # Index of the candle that confirmed it
+            "kline_index": idx,  # Where the price point actually is
+            "time": time,  # Timestamp of the price point
+            "pivot_value": val,  # High or Low value
+            "pivot_type": p_type,  # 1 for Peak, -1 for Valley
+            "pivot_formation_index": p_formation_idx,  # Index of the candle that confirmed it
         }
