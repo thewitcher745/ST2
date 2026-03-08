@@ -3,3 +3,4 @@ data/
 test.py
 **/__pycache__/
 chart.html
+**/**profile**

@@ -17,14 +17,15 @@ class BlockFactory:
         Returns:
             The index of the last candle of the given color.
         """
-        close_values = klines_df_slice["close"]
-        open_values = klines_df_slice["open"]
         first_index = klines_df_slice.iloc[0].name
 
+        green_bool_filter = klines_df_slice["close"] > klines_df_slice["open"]
+        red_bool_filter = ~green_bool_filter
+
         if color == "green":
-            candles_of_color = np.where(close_values > open_values)[0]
+            candles_of_color = np.where(green_bool_filter)[0]
         else:
-            candles_of_color = np.where(close_values < open_values)[0]
+            candles_of_color = np.where(red_bool_filter)[0]
 
         try:
             return int(candles_of_color[-1] + first_index)
