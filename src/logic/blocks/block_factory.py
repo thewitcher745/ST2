@@ -36,7 +36,8 @@ class BlockFactory:
     def find_order_block_in_leg(
         leg_df: DataFrame,
         direction: str,
-        start_time: Timestamp,
+        start_time: Timestamp, 
+        invalidation_price: float
     ) -> Block | None:
         """
         This function takes a leg_df which is a slice of the klines DataFrame,
@@ -49,6 +50,7 @@ class BlockFactory:
             leg_df: A DataFrame slice of klines data.
             direction: The direction of the order block to find, bullish or bearish.
             start_time: The time of the candle that the block is actually found.
+            invalidation_price: The price value at which the MSB that formed the block is considered invalid.
 
         Returns:
             Block: The potential order block in the leg.
@@ -68,6 +70,7 @@ class BlockFactory:
                 low=leg_df.loc[base_candle_index]["low"],
                 high=leg_df.loc[base_candle_index]["high"],
                 start_time=start_time,
+                invalidation_price=invalidation_price
             )
 
         else:
@@ -78,6 +81,7 @@ class BlockFactory:
         leg_df: DataFrame,
         direction: str,
         start_time: Timestamp,
+        invalidation_price: float,
     ) -> Block | None:
         """
         This function takes a leg_df which is a slice of the klines DataFrame,
@@ -89,6 +93,7 @@ class BlockFactory:
             leg_df: A DataFrame slice of klines data.
             direction: The direction of the order block to find, bullish or bearish.
             start_time: The time of the candle that the block is actually found.
+            invalidation_price: The price value at which the MSB that formed the block is considered invalid.
 
         Returns:
             Block: The potential mitigation block in the leg.
@@ -108,6 +113,7 @@ class BlockFactory:
                 low=leg_df.loc[base_candle_index]["low"],
                 high=leg_df.loc[base_candle_index]["high"],
                 start_time=start_time,
+                invalidation_price=invalidation_price
             )
 
         else:

@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import Any, Dict
+from line_profiler import profile
 from pandas import DataFrame, Timestamp
 import numpy as np
 
@@ -33,11 +34,12 @@ class Block(ABC):
 
         self.id = f"{'Bu' if self.direction == 'bullish' else 'Be'}_{self.block_type}_{base_candle_time.strftime('%Y-%m-%dT%H:%M:%S')}"
 
-    def check_end_candle(self, klines_df: DataFrame):
+    @profile
+    def check_end_candle(self, klines_df_close_array: np.array):
         """
         This method checks if the price has closed below/above the invalidation price.
         """
-        closes_after_start: np.array = klines_df.iloc[self.base_candle_index :].close
+        closes_after_start = klines_df_close_array[self.base_candle_index :]
 
         if self.direction == "bullish":
             invalidating_candles = np.where(
@@ -66,3 +68,6 @@ class Block(ABC):
             "base_candle_time": self.base_candle_time,
             "end_time": self.end_time,
         }
+
+    def __repr__(self):
+        return self.id
