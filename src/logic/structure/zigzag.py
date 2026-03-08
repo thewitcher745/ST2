@@ -69,7 +69,10 @@ class Zigzag:
         if not pivots:
             return DataFrame(columns=["kline_index", "time", "pivot_value", "pivot_type", "pivot_formation_index"])
 
-        zigzag_df = DataFrame(pivots)
+        # The last leg is only formed "virtually", meaning that even though a candle has virtually confirmed the
+        # second-to-last pivot, it itself isn't confirmed as a pivot until later, when a pivot of the opposite
+        # direction is seen. Therefore the very last pivot found should not be considered confimed.
+        zigzag_df = DataFrame(pivots[:-1])
 
         # 3. Market Structure Labeling (HH, LH, LL, HL)
         vals = zigzag_df["pivot_value"].to_numpy()
