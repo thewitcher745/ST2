@@ -1,5 +1,4 @@
 from pandas import DataFrame
-from line_profiler import profile
 
 from .block import Block
 from .block_factory import BlockFactory
@@ -61,7 +60,6 @@ class BlockManager:
                 self.active_blocks[direction].append(ob)
                 self.all_blocks[direction].append(ob)
 
-    @profile
     def update_block_end_times(self, klines_df: DataFrame):
         """
         This method updates each block's end time. The logic is that whenever a the pivot after

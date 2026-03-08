@@ -36,8 +36,8 @@ class BlockFactory:
     def find_order_block_in_leg(
         leg_df: DataFrame,
         direction: str,
-        start_time: Timestamp, 
-        invalidation_price: float
+        start_time: Timestamp,
+        invalidation_price: float,
     ) -> Block | None:
         """
         This function takes a leg_df which is a slice of the klines DataFrame,
@@ -70,7 +70,7 @@ class BlockFactory:
                 low=leg_df.loc[base_candle_index]["low"],
                 high=leg_df.loc[base_candle_index]["high"],
                 start_time=start_time,
-                invalidation_price=invalidation_price
+                invalidation_price=invalidation_price,
             )
 
         else:
@@ -113,7 +113,7 @@ class BlockFactory:
                 low=leg_df.loc[base_candle_index]["low"],
                 high=leg_df.loc[base_candle_index]["high"],
                 start_time=start_time,
-                invalidation_price=invalidation_price
+                invalidation_price=invalidation_price,
             )
 
         else:
