@@ -2,7 +2,7 @@ from pandas import Timestamp
 import numpy as np
 
 from ..structure.leg import Leg
-from ...data_provider.storage import KLinesData
+from ...data_provider import KLinesData
 from .block import Block
 
 

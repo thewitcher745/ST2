@@ -4,9 +4,7 @@ This module contains a small dataclass containing the data for a single leg.
 
 from dataclasses import dataclass
 
-from line_profiler import profile
-
-from ...data_provider.storage import KLinesData
+from ...data_provider import KLinesData
 
 
 @dataclass

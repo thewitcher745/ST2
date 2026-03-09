@@ -2,8 +2,8 @@ from pandas import DataFrame
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
-from ...data_provider.storage import KLinesData
-from ...config.config_provider import Config
+from ...data_provider import KLinesData
+from ...config import Config
 
 
 class Zigzag:
