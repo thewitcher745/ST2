@@ -2,6 +2,7 @@ from pandas import DataFrame
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
+from ...data_provider.storage import KLinesData
 from ...config.config_provider import Config
 
 
@@ -9,8 +10,8 @@ class Zigzag:
     def __init__(self, window_size: int = int(Config().lag)):
         self.window_size = window_size
 
-    def calculate(self, klines_df: DataFrame) -> DataFrame:
-        n = len(klines_df)
+    def calculate(self, klines_data: KLinesData) -> DataFrame:
+        n = klines_data.length
         if n < self.window_size:
             return DataFrame(
                 columns=[
@@ -23,11 +24,11 @@ class Zigzag:
             )
 
         # Vectorized extraction
-        highs = klines_df["high"].to_numpy()
-        lows = klines_df["low"].to_numpy()
-        closes = klines_df["close"].to_numpy()
-        opens = klines_df["open"].to_numpy()
-        times = klines_df["time"].to_numpy()
+        highs = klines_data.high
+        lows = klines_data.low
+        closes = klines_data.close
+        opens = klines_data.open
+        times = klines_data.time
 
         # 1. Vectorized Extremes
         # Sliding window looks at the previous window_size elements
