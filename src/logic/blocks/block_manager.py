@@ -12,7 +12,6 @@ class BlockManager:
     def __init__(self):
         self.factory = BlockFactory()
         self.all_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
-        self.active_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
 
     def add_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData
@@ -50,10 +49,8 @@ class BlockManager:
 
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
             if bb:
-                self.active_blocks[direction].append(bb)
                 self.all_blocks[direction].append(bb)
             if ob:
-                self.active_blocks[direction].append(ob)
                 self.all_blocks[direction].append(ob)
 
     def update_block_end_times(self, klines_data: KLinesData):
