@@ -7,7 +7,6 @@ from ...config.config_provider import Config
 
 class Zigzag:
     def __init__(self, window_size: int = int(Config().lag)):
-        print(type(window_size))
         self.window_size = window_size
 
     def calculate(self, klines_df: DataFrame) -> DataFrame:
