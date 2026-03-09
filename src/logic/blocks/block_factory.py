@@ -37,6 +37,7 @@ class BlockFactory:
         leg: Leg,
         klines_data: KLinesData,
         direction: str,
+        start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
     ) -> Block | None:
@@ -50,6 +51,7 @@ class BlockFactory:
         Args:
             leg: A Leg object containing the open and close values in a leg, including its start index.
             direction: The direction of the order block to find, bullish or bearish.
+            start_index: The index of the candle that the block is actually found.
             start_time: The time of the candle that the block is actually found.
             invalidation_price: The price value at which the MSB that formed the block is considered invalid.
 
@@ -70,6 +72,7 @@ class BlockFactory:
                 block_type="OB",
                 low=klines_data.low[base_candle_index],
                 high=klines_data.high[base_candle_index],
+                start_index=start_index,
                 start_time=start_time,
                 invalidation_price=invalidation_price,
             )
@@ -82,6 +85,7 @@ class BlockFactory:
         leg: Leg,
         klines_data: KLinesData,
         direction: str,
+        start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
     ) -> Block | None:
@@ -94,6 +98,7 @@ class BlockFactory:
         Args:
             leg: A Leg object containing the open and close values in a leg, including its start index.
             direction: The direction of the order block to find, bullish or bearish.
+            start_index: The index of the candle that the block is actually found.
             start_time: The time of the candle that the block is actually found.
             invalidation_price: The price value at which the MSB that formed the block is considered invalid.
 
@@ -114,6 +119,7 @@ class BlockFactory:
                 block_type="BB/MB",
                 low=klines_data.low[base_candle_index],
                 high=klines_data.high[base_candle_index],
+                start_index=start_index,
                 start_time=start_time,
                 invalidation_price=invalidation_price,
             )

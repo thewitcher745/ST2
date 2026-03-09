@@ -42,10 +42,10 @@ class BlockManager:
                 invalidation_price = klines_data.high[zigzag_df.iloc[row["pivot_index"] + 1].kline_index]
 
             ob = self.factory.find_order_block_in_leg(
-                leg_after_data, klines_data, direction, start_time, invalidation_price
+                leg_after_data, klines_data, direction, row["formation_index"], start_time, invalidation_price
             )
             bb = self.factory.find_breaker_mitigation_block_in_leg(
-                leg_before_data, klines_data, direction, start_time, invalidation_price
+                leg_before_data, klines_data, direction, row["formation_index"], start_time, invalidation_price
             )
 
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
