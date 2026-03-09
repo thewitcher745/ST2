@@ -26,6 +26,8 @@ class Block(ABC):
         self.block_type = block_type  # 'OB', 'BB', or 'MB'
         self.low = low
         self.high = high
+        self.height = high - low
+        self.height_percentage = (high - low) / ((high + low) / 2)
         self.start_time = start_time
         self.end_time = None
         self.end_index = None
