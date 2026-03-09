@@ -1,11 +1,13 @@
-from typing import Dict, Optional, List, Union
+from typing import Dict, Optional, Union
 from numpy.lib.stride_tricks import sliding_window_view
 from pandas import DataFrame
 import numpy as np
 
+from ...config.config_provider import Config
+
 
 class MSBIdentifier:
-    def __init__(self, fib_factor: float = 0.33):
+    def __init__(self, fib_factor: float = float(Config().fib_factor)):
         """
         Initializes 3-pivot patterns for Market Structure Breaks (MSB).
         A break is defined by the transition from a trend-continuation

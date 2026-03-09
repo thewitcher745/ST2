@@ -2,14 +2,26 @@ from pandas import DataFrame
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
+from ...config.config_provider import Config
+
+
 class Zigzag:
-    def __init__(self, window_size: int = 9):
+    def __init__(self, window_size: int = int(Config().lag)):
+        print(type(window_size))
         self.window_size = window_size
 
     def calculate(self, klines_df: DataFrame) -> DataFrame:
         n = len(klines_df)
         if n < self.window_size:
-            return DataFrame(columns=["kline_index", "time", "pivot_value", "pivot_type", "pivot_formation_index"])
+            return DataFrame(
+                columns=[
+                    "kline_index",
+                    "time",
+                    "pivot_value",
+                    "pivot_type",
+                    "pivot_formation_index",
+                ]
+            )
 
         # Vectorized extraction
         highs = klines_df["high"].to_numpy()
@@ -27,8 +39,12 @@ class Zigzag:
         is_valley_array = np.zeros(n, dtype=bool)
 
         # A candle is a pivot if its extreme is greater/less than the window EXCLUDING itself
-        is_peak_array[self.window_size-1:] = highs[self.window_size-1:] > np.max(win_highs[:, :-1], axis=1)
-        is_valley_array[self.window_size-1:] = lows[self.window_size-1:] < np.min(win_lows[:, :-1], axis=1)
+        is_peak_array[self.window_size - 1 :] = highs[self.window_size - 1 :] > np.max(
+            win_highs[:, :-1], axis=1
+        )
+        is_valley_array[self.window_size - 1 :] = lows[self.window_size - 1 :] < np.min(
+            win_lows[:, :-1], axis=1
+        )
 
         pivots = []
         last_type = 0  # 1: Peak, -1: Valley
@@ -37,14 +53,15 @@ class Zigzag:
             nonlocal last_type
             if last_type == p_type:
                 # Extension logic: only update if the new value is more extreme
-                if (p_type == 1 and val > pivots[-1]["pivot_value"]) or \
-                   (p_type == -1 and val < pivots[-1]["pivot_value"]):
+                if (p_type == 1 and val > pivots[-1]["pivot_value"]) or (
+                    p_type == -1 and val < pivots[-1]["pivot_value"]
+                ):
                     pivots[-1] = self._make_dict(idx, time, val, p_type, idx)
             else:
                 # New leg logic: current candle confirms the previous pivot's completion
                 if pivots:
                     pivots[-1]["pivot_formation_index"] = idx
-                
+
                 pivots.append(self._make_dict(idx, time, val, p_type, idx))
                 last_type = p_type
 
@@ -55,10 +72,10 @@ class Zigzag:
 
             if peak and valley:
                 # Intraday order approximation via candle color
-                if closes[i] < opens[i]: # Red: High then Low
+                if closes[i] < opens[i]:  # Red: High then Low
                     update_pivot(i, times[i], highs[i], 1)
                     update_pivot(i, times[i], lows[i], -1)
-                else: # Green: Low then High
+                else:  # Green: Low then High
                     update_pivot(i, times[i], lows[i], -1)
                     update_pivot(i, times[i], highs[i], 1)
             elif peak:
@@ -67,7 +84,15 @@ class Zigzag:
                 update_pivot(i, times[i], lows[i], -1)
 
         if not pivots:
-            return DataFrame(columns=["kline_index", "time", "pivot_value", "pivot_type", "pivot_formation_index"])
+            return DataFrame(
+                columns=[
+                    "kline_index",
+                    "time",
+                    "pivot_value",
+                    "pivot_type",
+                    "pivot_formation_index",
+                ]
+            )
 
         # The last leg is only formed "virtually", meaning that even though a candle has virtually confirmed the
         # second-to-last pivot, it itself isn't confirmed as a pivot until later, when a pivot of the opposite
@@ -80,10 +105,10 @@ class Zigzag:
         structure = np.full(len(zigzag_df), "", dtype="U2")
 
         for i in range(2, len(zigzag_df)):
-            if typs[i] == 1: # Peak
-                structure[i] = "HH" if vals[i] > vals[i-2] else "LH"
-            else: # Valley
-                structure[i] = "LL" if vals[i] < vals[i-2] else "HL"
+            if typs[i] == 1:  # Peak
+                structure[i] = "HH" if vals[i] > vals[i - 2] else "LH"
+            else:  # Valley
+                structure[i] = "LL" if vals[i] < vals[i - 2] else "HL"
 
         zigzag_df["structure"] = structure
         return zigzag_df
@@ -95,5 +120,5 @@ class Zigzag:
             "time": time,
             "pivot_value": val,
             "pivot_type": p_type,
-            "pivot_formation_index": f_idx
+            "pivot_formation_index": f_idx,
         }
