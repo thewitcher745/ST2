@@ -23,6 +23,6 @@ class PositionManager:
         return DataFrame(
             [
                 position.to_dict()
-                for position in self.all_positions["long"] + self.all_positions["long"]
+                for position in self.all_positions["long"] + self.all_positions["short"]
             ]
         )
