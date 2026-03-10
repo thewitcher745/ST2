@@ -313,31 +313,33 @@ class ChartManager:
                         last_time = row["entry_time"]
                         last_price = row["entry"]
 
-                    self._fig.add_trace(
-                        go.Scatter(
-                            x=[last_time, row["stop_time"]],
-                            y=[last_price, row["stoploss"]],
-                            mode="lines",
-                            line=dict(
-                                color=colors[i % len(colors)], width=2, dash="dash"
-                            ),
-                            name=f"Stop {i + 1}",
+                    # Don't draw the line connecting the last target to the stoploss if the position has achieved all targets
+                    if not row["full_target"]:
+                        self._fig.add_trace(
+                            go.Scatter(
+                                x=[last_time, row["stop_time"]],
+                                y=[last_price, row["stoploss"]],
+                                mode="lines",
+                                line=dict(
+                                    color=colors[i % len(colors)], width=2, dash="dash"
+                                ),
+                                name=f"Stop {i + 1}",
+                            )
                         )
-                    )
 
-                    self._fig.add_trace(
-                        go.Scatter(
-                            x=[row["stop_time"]],
-                            y=[row["stoploss"]],
-                            mode="markers",
-                            marker=dict(
-                                size=10,
-                                color=colors[i % len(colors)],
-                                symbol="circle",
-                                line=dict(width=2, color="DarkRed"),
-                            ),
+                        self._fig.add_trace(
+                            go.Scatter(
+                                x=[row["stop_time"]],
+                                y=[row["stoploss"]],
+                                mode="markers",
+                                marker=dict(
+                                    size=10,
+                                    color=colors[i % len(colors)],
+                                    symbol="circle",
+                                    line=dict(width=2, color="DarkRed"),
+                                ),
+                            )
                         )
-                    )
 
     def _apply_zoom(self):
         """Applies the zoom to the chart."""
