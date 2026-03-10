@@ -29,8 +29,9 @@ class Position:
         self.target_times: list[pd.timestamp] = []
         self.stop_time: pd.Timestamp = None
         self.exit_time: pd.Timestamp = None
-        
+
         self.status = "NOT_ENTERED"
+        self.full_target = False
 
         self.setup_stop_targets()
 
@@ -66,9 +67,8 @@ class Position:
         """
         # Filter the candles of klines_dffrom the start of the block to its end. If no
         # end is registered, go all the way to the end candle of the data.
-        # The +1 is because the candle that ends the block can and usually is also the
-        # candle that stops the position, so we should probably! consider it too.
-        index_offset = self.base_block.start_index
+        index_offset = self.base_block.start_index + 1
+
         if self.base_block.end_index:
             lows_within_block = klines_data.low[
                 index_offset : self.base_block.end_index + 1
@@ -80,150 +80,149 @@ class Position:
             lows_within_block = klines_data.low[self.base_block.start_index :]
             highs_within_block = klines_data.high[self.base_block.start_index :]
 
+        # Variables declared for brevity of the code, so less nesting is needed
         if self.type == "long":
-            # Find the first entry event.
-            entry_candles = where(lows_within_block <= self.entry)[0]
-            if len(entry_candles) > 0:
-                self.status = "ENTERED"
+            entry_check_condition = lows_within_block <= self.entry
+            stoploss_check_condition = lows_within_block <= self.stoploss
+            stoploss_registry_array = highs_within_block
+        else:
+            entry_check_condition = highs_within_block >= self.entry
+            stoploss_check_condition = highs_within_block >= self.stoploss
+            stoploss_registry_array = lows_within_block
+
+        # Find the first entry event.
+        entry_candles = where(entry_check_condition)[0]
+        if len(entry_candles) > 0:
+            self.status = "ENTERED"
+            # +1 because the candle starting the block should not register, as the algo
+            # probably can't react fast enough.
+            first_entry_index = entry_candles[0] + index_offset
+            first_stoploss_index = None
+            # Find the first stoploss event.
+            stoploss_candles = where(stoploss_check_condition)[0]
+            if len(stoploss_candles) > 0:
                 # +1 because the candle starting the block should not register, as the algo
                 # probably can't react fast enough.
-                first_entry_index = entry_candles[0] + index_offset + 1
-                first_stoploss_index = None
-                # Find the first stoploss event.
-                stoploss_candles = where(lows_within_block <= self.stoploss)[0]
-                if len(stoploss_candles) > 0:
-                    # +1 because the candle starting the block should not register, as the algo
-                    # probably can't react fast enough.
-                    first_stoploss_index = stoploss_candles[0] + index_offset + 1
+                first_stoploss_index = stoploss_candles[0] + index_offset
 
-                # The first entry candle is ALWAYS earlier or at least equal to the first
-                # stoploss. Because in the conditions being checked above, the stoploss
-                # is always below the entry, so any candle with a low below the stoploss is
-                # also below the entry.
+            # The first entry candle is ALWAYS earlier or at least equal to the first
+            # stoploss. Because in the conditions being checked above, the stoploss
+            # is always below the entry, so any candle with a low below the stoploss is
+            # also below the entry.
 
-                # Register the entry time
-                self.entry_time = klines_data.time[first_entry_index]
+            # Register the entry time
+            self.entry_time = klines_data.time[first_entry_index]
 
-                # Register the stoploss time, if there is one.
-                if first_stoploss_index:
-                    self.stop_time = klines_data.time[first_stoploss_index]
+            # Register the stoploss time, if there is one.
+            if first_stoploss_index:
+                self.stop_time = klines_data.time[first_stoploss_index]
 
-                    # The targets will be checked for in the candles between the entry and the
-                    # stoploss indices. If no stoploss is registered, the entire span of the
-                    # start index to the end of the klines_data is checked.
+                # The targets will be checked for in the candles between the entry and the
+                # stoploss indices. If no stoploss is registered, the entire span of the
+                # start index to the end of the klines_data is checked.
 
-                    check_window_highs = highs_within_block[
-                        first_entry_index - index_offset : first_stoploss_index
-                        - index_offset
-                    ]
+                check_window_extrema = stoploss_registry_array[
+                    first_entry_index - index_offset : first_stoploss_index
+                    - index_offset
+                ]
+            else:
+                check_window_extrema = stoploss_registry_array[
+                    first_entry_index - index_offset :
+                ]
+            check_window_offset = first_entry_index
+            # The check_window variables are the lows and highs of the candles that need
+            # to be checked for target hits, in order. The target hit time for each target
+            # is then registered for later review. check_window_offset is the value that
+            # we need to add to any locally-indexed indices to get the global klines_df
+            # index for that event.
+
+            # Since each target necessarily happens after (or on the same candle) as the
+            # previous target, there should be a dynamic offset that keeps track of the
+            # highest target hit before the current one being processed. Initially this is
+            # at check_window_offset, which means we are at the first candle of the check
+            # window. If a target is found, the current offset is changed by the index of the
+            # candle of the current target, if found (locally indexed).
+            current_offset = check_window_offset
+            highest_target = 0
+            for target in self.targets:
+                if self.type == "long":
+                    current_target_hitting_candles = where(
+                        check_window_extrema >= target
+                    )[0]
                 else:
-                    check_window_highs = highs_within_block[
-                        first_entry_index - index_offset :
-                    ]
-                check_window_offset = first_entry_index
-                # The check_window variables are the lows and highs of the candles that need
-                # to be checked for target hits, in order. The target hit time for each target
-                # is then registered for later review. check_window_offset is the value that
-                # we need to add to any locally-indexed indices to get the global klines_df
-                # index for that event.
+                    current_target_hitting_candles = where(
+                        check_window_extrema <= target
+                    )[0]
 
-                # Since each target necessarily happens after (or on the same candle) as the
-                # previous target, there should be a dynamic offset that keeps track of the
-                # highest target hit before the current one being processed. Initially this is
-                # at check_window_offset, which means we are at the first candle of the check
-                # window. If a target is found, the current offset is changed by the index of the
-                # candle of the current target, if found (locally indexed).
-                current_offset = check_window_offset
-                highest_target = 0
-                for target in self.targets:
-                    current_target_hitting_candles = where(check_window_highs > target)[
-                        0
-                    ]
-                    if len(current_target_hitting_candles) > 0:
-                        highest_target += 1
-                        first_candle_to_hit_target_index = (
-                            current_target_hitting_candles[0]
+                if len(current_target_hitting_candles) > 0:
+                    first_candle_to_hit_target_index = current_target_hitting_candles[0]
+
+                    # If the first candle to hit target is the same as the entry candle, aka 0
+                    # in the local index, we need to check the candle color before registering a
+                    # target. In long positions, if the candle is bullish, that means the entry
+                    # was (probably) achieved before the target, and vice versa. If in a long
+                    # position the candle to achieve both entry and target is bearish, we only
+                    # register the entry and not the target.
+                    if first_candle_to_hit_target_index == 0:
+                        # Find the color of the candle
+                        candle_index = first_candle_to_hit_target_index + current_offset
+                        candle_color = (
+                            "green"
+                            if klines_data.close[candle_index]
+                            > klines_data.open[candle_index]
+                            else "red"
                         )
-                        target_hit_time = klines_data.time[
-                            first_candle_to_hit_target_index + current_offset
-                        ]
-                        self.target_times.append(target_hit_time)
-                        current_offset += first_candle_to_hit_target_index
-                        check_window_highs = check_window_highs[
-                            first_candle_to_hit_target_index:
-                        ]
 
-                    # If a target is not hit by the end of the check window, that means that no
-                    # target after it will be hit either, so we can safely break without checking
-                    # the rest of the targets.
-                    else:
-                        break
+                        if candle_color == "green" and self.type == "long":
+                            pass
+                        elif candle_color == "red" and self.type == "short":
+                            pass
 
-                # Now we aggregate all the results and close out the position safely.
-                if highest_target > 0:
-                    self.status = f"TARGET_{highest_target}"
-                else:
-                    self.status = "STOPLOSS"
+                        # If an opposite direction candle gives both an entry and a target, check if any other candles
+                        # after it achive a target. If no such candles exist, that means no other targets will be achieved.
+                        else:
+                            if len(current_target_hitting_candles) > 1:
+                                first_candle_to_hit_target_index = (
+                                    current_target_hitting_candles[1]
+                                )
+                            else:
+                                break
 
-        else:
-            entry_candles = where(highs_within_block >= self.entry)[0]
-            if len(entry_candles) > 0:
-                self.status = "ENTERED"
-                first_entry_index = entry_candles[0] + index_offset + 1
-                first_stoploss_index = None
+                    highest_target += 1
 
-                stoploss_candles = where(highs_within_block >= self.stoploss)[0]
-                if len(stoploss_candles) > 0:
-                    first_stoploss_index = stoploss_candles[0] + index_offset + 1
-
-                self.entry_time = klines_data.time[first_entry_index]
-
-                if first_stoploss_index:
-                    self.stop_time = klines_data.time[first_stoploss_index]
-
-                    check_window_lows = lows_within_block[
-                        first_entry_index - index_offset : first_stoploss_index
-                        - index_offset
+                    target_hit_time = klines_data.time[
+                        first_candle_to_hit_target_index + current_offset
                     ]
-                else:
-                    check_window_lows = lows_within_block[
-                        first_entry_index - index_offset :
+                    self.target_times.append(target_hit_time)
+                    current_offset += first_candle_to_hit_target_index
+                    check_window_extrema = check_window_extrema[
+                        first_candle_to_hit_target_index:
                     ]
-                check_window_offset = first_entry_index
 
-                current_offset = check_window_offset
-                highest_target = 0
-                for target in self.targets:
-                    current_target_hitting_candles = where(check_window_lows < target)[
-                        0
-                    ]
-                    if len(current_target_hitting_candles) > 0:
-                        highest_target += 1
-                        first_candle_to_hit_target_index = (
-                            current_target_hitting_candles[0]
-                        )
-                        target_hit_time = klines_data.time[
-                            first_candle_to_hit_target_index + current_offset
-                        ]
-                        self.target_times.append(target_hit_time)
-                        current_offset += first_candle_to_hit_target_index
-                        check_window_lows = check_window_lows[
-                            first_candle_to_hit_target_index:
-                        ]
-                    else:
-                        break
-
-                if highest_target > 0:
-                    self.status = f"TARGET_{highest_target}"
+                # If a target is not hit by the end of the check window, that means that no
+                # target after it will be hit either, so we can safely break without checking
+                # the rest of the targets.
                 else:
-                    self.status = "STOPLOSS"
+                    break
 
+            # Now we aggregate all the results and close out the position safely.
+            if highest_target > 0:
+                self.status = f"TARGET_{highest_target}"
+
+                # If all targets are achieved, set the stop time to None and full_target to True
+                if highest_target == len(self.targets):
+                    self.full_target = True
+                    self.stop_time = None
+
+            else:
+                self.status = "STOPLOSS"
 
     def to_dict(self) -> dict:
         return {
             "base_block_id": self.base_block.id,
             "type": self.type,
             "status": self.status,
+            "full_target": self.full_target,
             "entry": self.entry,
             "targets": self.targets,
             "stoploss": self.stoploss,
