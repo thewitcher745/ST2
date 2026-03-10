@@ -248,6 +248,97 @@ class ChartManager:
                 )
             )
 
+    def add_positions(self, positions_df):
+        """
+        Draws lines representing the entry, targets and stops of a dataframe of positions.
+        """
+        colors = [
+            "cyan",
+            "magenta",
+            "yellow",
+            "green",
+            "blue",
+            "orange",
+            "purple",
+            "red",
+            "lime",
+            "gold",
+        ]
+        for i, row in positions_df.iterrows():
+            if row["entry_time"] is not NaT:
+                # Marker for entry
+                self._fig.add_trace(
+                    go.Scatter(
+                        x=[row["entry_time"]],
+                        y=[row["entry"]],
+                        mode="markers",
+                        marker=dict(
+                            size=10,
+                            color=colors[i % len(colors)],
+                            symbol="circle",
+                            line=dict(width=2, color="LightBlue"),
+                        ),
+                    )
+                )
+
+                if row["target_times"] is not None and len(row["target_times"]) > 0:
+                    prev_time = row["entry_time"]
+                    prev_price = row["entry"]
+                    for t_time, t_price in zip(row["target_times"], row["targets"]):
+                        # Line from previous (entry or previous target) to current target
+                        self._fig.add_trace(
+                            go.Scatter(
+                                x=[prev_time, t_time],
+                                y=[prev_price, t_price],
+                                mode="lines+markers",
+                                line=dict(color=colors[i % len(colors)], width=2),
+                                marker=dict(size=6, color=colors[i % len(colors)]),
+                                name=f"Target {i + 1}",
+                            )
+                        )
+                        prev_time, prev_price = (
+                            t_time,
+                            t_price,
+                        )  # Update for next segment
+
+                if row["stop_time"] is not NaT:
+                    # If the position has hit ANY targets, draw a line connecting the last target hit
+                    # to the stoploss.
+                    if row["status"] != "STOPLOSS":
+                        highest_target = int(row["status"].split("_")[-1])
+                        last_time = row["target_times"][-1]
+                        last_price = row["targets"][highest_target - 1]
+                    # If no targets are registered, just connect the entry to the stoploss
+                    else:
+                        last_time = row["entry_time"]
+                        last_price = row["entry"]
+
+                    self._fig.add_trace(
+                        go.Scatter(
+                            x=[last_time, row["stop_time"]],
+                            y=[last_price, row["stoploss"]],
+                            mode="lines",
+                            line=dict(
+                                color=colors[i % len(colors)], width=2, dash="dash"
+                            ),
+                            name=f"Stop {i + 1}",
+                        )
+                    )
+
+                    self._fig.add_trace(
+                        go.Scatter(
+                            x=[row["stop_time"]],
+                            y=[row["stoploss"]],
+                            mode="markers",
+                            marker=dict(
+                                size=10,
+                                color=colors[i % len(colors)],
+                                symbol="circle",
+                                line=dict(width=2, color="DarkRed"),
+                            ),
+                        )
+                    )
+
     def _apply_zoom(self):
         """Applies the zoom to the chart."""
         if hasattr(self, "_should_zoom") and self._should_zoom:
