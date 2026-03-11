@@ -3,6 +3,7 @@ from pandas import DataFrame
 from ...data_provider import KLinesData
 from .position import Position
 from ..blocks.block import Block
+from .position_simulator import PositionSimulator
 
 
 class PositionManager:
@@ -14,10 +15,14 @@ class PositionManager:
             type = "long" if block.direction == "bullish" else "short"
             self.all_positions[type].append(Position(block))
 
-    def calc_all_positions_events(self, klines_data: KLinesData):
-        for type in ["long", "short"]:
+    def simulate_all_positions(self, klines_data: KLinesData):
+        """
+        Simulates the entry, targets and stoplosses of all positions and sets their net and percent
+        profits.
+        """
+        for type in ["short", "long"]:
             for position in self.all_positions[type]:
-                position.calc_events(klines_data)
+                PositionSimulator.simulate(position, klines_data)
 
     def to_dataframe(self) -> DataFrame:
         return DataFrame(

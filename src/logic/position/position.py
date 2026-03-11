@@ -31,7 +31,10 @@ class Position:
         self.exit_time: pd.Timestamp = None
 
         self.status = "NOT_ENTERED"
-        self.full_target = False
+        self.net_profit: float = 0
+        self.percent_profit: float = 0
+        self.highest_target: int = 0
+        self.full_target: bool = False
 
         self.setup_stop_targets()
 
@@ -51,21 +54,8 @@ class Position:
     def calc_events(self, klines_data: KLinesData):
         """
         The event list re-tells what happened to the position and when.
-        It is arbitrarily sized, and is empty at first. It is then populated
-        with data showing what happened where. Each entry is a tuple, with the second
-        element showing the index of the event, indexed on klines_df, and the first
-        element showing what happened. Here is a list of event symbols:
-
-            E: Entry event
-            T + target_index: Target event
-            S: Stoploss event
-
-        A logical order of events is followed, for example a "target" element can only
-        occur if an entry event has happened before it. Candles registering two events at
-        the same time are judged using candle color logic, i.e. using the candle color
-        to get a rough idea of what happened at the higher resolution chart.
         """
-        # Filter the candles of klines_dffrom the start of the block to its end. If no
+        # Filter the candles of klines_df from the start of the block to its end. If no
         # end is registered, go all the way to the end candle of the data.
         index_offset = self.base_block.start_index + 1
 
@@ -143,7 +133,7 @@ class Position:
             # window. If a target is found, the current offset is changed by the index of the
             # candle of the current target, if found (locally indexed).
             current_offset = check_window_offset
-            highest_target = 0
+            self.highest_target = 0
             for target in self.targets:
                 if self.type == "long":
                     current_target_hitting_candles = where(
@@ -188,7 +178,7 @@ class Position:
                             else:
                                 break
 
-                    highest_target += 1
+                    self.highest_target += 1
 
                     target_hit_time = klines_data.time[
                         first_candle_to_hit_target_index + current_offset
@@ -206,22 +196,64 @@ class Position:
                     break
 
             # Now we aggregate all the results and close out the position safely.
-            if highest_target > 0:
-                self.status = f"TARGET_{highest_target}"
+            if self.highest_target > 0:
+                self.status = f"TARGET_{self.highest_target}"
 
                 # If all targets are achieved, set the stop time to None and full_target to True
-                if highest_target == len(self.targets):
+                if self.highest_target == len(self.targets):
                     self.full_target = True
                     self.stop_time = None
 
             else:
                 self.status = "STOPLOSS"
 
+    def calc_profit(self):
+        """
+        This method calculates the net and percent profit of the position based on its entry, targets and stoploss.
+        """
+        total_margin_per_trade = float(config.usdt_per_trade) * float(config.leverage)
+        n_targets = len(self.targets)
+        qty = total_margin_per_trade / self.entry
+        if self.status != "NOT_ENTERED":
+            if self.type == "long":
+                loss_from_entry = total_margin_per_trade
+                qty_per_target = qty / n_targets
+                qty_stoploss = sum([qty_per_target] * (n_targets - self.highest_target))
+                targets_qty_array = [qty_per_target] * (self.highest_target) + [0] * (
+                    n_targets - self.highest_target
+                )
+                gain_from_targets = sum(array(targets_qty_array) * self.targets)
+                gain_from_stoploss = qty_stoploss * self.stoploss
+
+                self.net_profit = (
+                    gain_from_targets + gain_from_stoploss - loss_from_entry
+                )
+
+            else:
+                gain_from_entry = total_margin_per_trade
+                qty_per_target = qty / n_targets
+                qty_stoploss = sum([qty_per_target] * (n_targets - self.highest_target))
+                targets_qty_array = [qty_per_target] * (self.highest_target) + [0] * (
+                    n_targets - self.highest_target
+                )
+                loss_from_targets = sum(array(targets_qty_array) * self.targets)
+                loss_from_stoploss = qty_stoploss * self.stoploss
+
+                self.net_profit = (
+                    gain_from_entry - loss_from_targets - loss_from_stoploss
+                )
+
+            self.percent_profit = self.net_profit / float(config.usdt_per_trade) * 100
+
     def to_dict(self) -> dict:
         return {
             "base_block_id": self.base_block.id,
             "type": self.type,
             "status": self.status,
+            "base_block_height_percentage": self.base_block.height_percentage,
+            "highest_target": self.highest_target,
+            "net_profit": self.net_profit,
+            "percent_profit": self.percent_profit,
             "full_target": self.full_target,
             "entry": self.entry,
             "targets": self.targets,
