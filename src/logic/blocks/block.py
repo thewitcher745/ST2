@@ -28,7 +28,7 @@ class Block(ABC):
         self.low = low
         self.high = high
         self.height = high - low
-        self.height_percentage = (high - low) / ((high + low) / 2)
+        self.height_percentage = (high - low) / ((high + low) / 2) * 100
         self.start_index = start_index
         self.start_time = start_time
         self.end_time = None
