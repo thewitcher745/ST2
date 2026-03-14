@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-
 from pandas import Timestamp
 
 
 @dataclass(frozen=True)
 class Tick:
-    timestamp: Timestamp
+    event_time: Timestamp
     price: float
-    candle_index: int
+    open: float
+    high: float
+    low: float
+    close: float
+    timestamp: Timestamp

@@ -26,6 +26,11 @@ class TickWebsocketServer:
                 "timestamp": tick.timestamp.timestamp(),
                 "price": tick.price,
                 "candle_index": tick.candle_index,
+                "open": tick.open,
+                "high": tick.high,
+                "low": tick.low,
+                "close": tick.close,
+                "candle_open_time": tick.candle_open_time.timestamp(),
             }
         )
 
@@ -47,7 +52,7 @@ class TickWebsocketServer:
                 except ConnectionClosed:
                     pass
             tick_counter += 1
-            await asyncio.sleep(self.tick_provider.tick_interval)
+            await asyncio.sleep(self.tick_provider.min_interval)
 
     async def serve(self):
         async with serve(self._client_handler, self.host, self.port):
