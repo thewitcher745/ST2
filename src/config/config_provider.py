@@ -10,10 +10,23 @@ class Config:
 
         return cls._instance
 
-    def __init__(self, env_file_path: str = ".env.config"):
-        config_values = dotenv_values(env_file_path)
+    def __init__(
+        self,
+        config_env_path: str = ".env.config",
+        misc_env_path: str = ".env.misc",
+        misc_local_env_path: str = ".env.misc.local",
+    ):
+        config_values = dotenv_values(config_env_path)
+        misc_values = dotenv_values(misc_env_path)
+        misc_local_values = dotenv_values(misc_local_env_path)
 
         for key, value in config_values.items():
+            self.__setattr__(key, value)
+
+        for key, value in misc_values.items():
+            self.__setattr__(key, value)
+
+        for key, value in misc_local_values.items():
             self.__setattr__(key, value)
 
     def __repr__(self):
