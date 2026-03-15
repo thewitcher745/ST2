@@ -20,6 +20,7 @@ class Zigzag:
                     "pivot_value",
                     "pivot_type",
                     "pivot_formation_index",
+                    "structure",
                 ]
             )
 
@@ -91,6 +92,7 @@ class Zigzag:
                     "pivot_value",
                     "pivot_type",
                     "pivot_formation_index",
+                    "structure",
                 ]
             )
 
