@@ -116,8 +116,8 @@ class MSBIdentifier:
                             "kline_index": int(k_idx[i + 1]),
                             "break_level": p1,
                             # The two consecutive legs joining at the MSB (p1)
-                            "leg_before": (int(k_idx[i]), int(k_idx[i + 1])),
-                            "leg_after": (int(k_idx[i + 1]), int(k_idx[i + 2])),
+                            "leg_before": (int(k_idx[i]), int(k_idx[i + 1]) + 1),
+                            "leg_after": (int(k_idx[i + 1]), int(k_idx[i + 2]) + 1),
                         }
                     )
 
