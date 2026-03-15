@@ -1,3 +1,4 @@
+from typing import Literal
 from pandas import Timestamp
 import numpy as np
 
@@ -88,6 +89,7 @@ class BlockFactory:
         start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
+        type=Literal["bb", "mb"],
     ) -> Block | None:
         """
         This function takes a leg which is a Leg object, essentially a slice of a KLines dataframe,
@@ -101,6 +103,7 @@ class BlockFactory:
             start_index: The index of the candle that the block is actually found.
             start_time: The time of the candle that the block is actually found.
             invalidation_price: The price value at which the MSB that formed the block is considered invalid.
+            type: bb or mb depending on type of block.
 
         Returns:
             Block: The potential mitigation block in the leg.
@@ -112,17 +115,30 @@ class BlockFactory:
 
         # If such a candle is found, return the order block constructed on that base candle
         if base_candle_index:
-            return Block(
-                base_candle_index,
-                base_candle_time=klines_data.time[base_candle_index],
-                direction=direction,
-                block_type="BB/MB",
-                low=klines_data.low[base_candle_index],
-                high=klines_data.high[base_candle_index],
-                start_index=start_index,
-                start_time=start_time,
-                invalidation_price=invalidation_price,
-            )
+            if type == "bb":
+                return Block(
+                    base_candle_index,
+                    base_candle_time=klines_data.time[base_candle_index],
+                    direction=direction,
+                    block_type="BB",
+                    low=klines_data.low[base_candle_index],
+                    high=klines_data.high[base_candle_index],
+                    start_index=start_index,
+                    start_time=start_time,
+                    invalidation_price=invalidation_price,
+                )
+            else:
+                return Block(
+                    base_candle_index,
+                    base_candle_time=klines_data.time[base_candle_index],
+                    direction=direction,
+                    block_type="MB",
+                    low=klines_data.low[base_candle_index],
+                    high=klines_data.high[base_candle_index],
+                    start_index=start_index,
+                    start_time=start_time,
+                    invalidation_price=invalidation_price,
+                )
 
         else:
             return None

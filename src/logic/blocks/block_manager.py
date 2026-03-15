@@ -36,20 +36,53 @@ class BlockManager:
             # succeeding the pivot which the MSB is located. If a candle "CLOSES" above/below this price, the block is
             # deemed invalid.
             if direction == "bullish":
-                invalidation_price = klines_data.low[zigzag_df.iloc[row["pivot_index"] + 1].kline_index]
+                invalidation_price = klines_data.low[
+                    zigzag_df.iloc[row["pivot_index"] + 1].kline_index
+                ]
             else:
-                invalidation_price = klines_data.high[zigzag_df.iloc[row["pivot_index"] + 1].kline_index]
+                invalidation_price = klines_data.high[
+                    zigzag_df.iloc[row["pivot_index"] + 1].kline_index
+                ]
 
             ob = self.factory.find_order_block_in_leg(
-                leg_after_data, klines_data, direction, row["formation_index"], start_time, invalidation_price
+                leg_after_data,
+                klines_data,
+                direction,
+                row["formation_index"],
+                start_time,
+                invalidation_price,
             )
-            bb = self.factory.find_breaker_mitigation_block_in_leg(
-                leg_before_data, klines_data, direction, row["formation_index"], start_time, invalidation_price
-            )
+            # The BB/MB property of the block depends on if the pivot after the MSB pivot is a lower low
+            # or a higher low. A lower low results in a BB and a higher low results in an MB.
+            msb_next_pivot_structure = zigzag_df.iloc[row["pivot_index"] + 1].structure
+            bb = None
+            mb = None
+            if msb_next_pivot_structure == "LL" or msb_next_pivot_structure == "HH":
+                bb = self.factory.find_breaker_mitigation_block_in_leg(
+                    leg_before_data,
+                    klines_data,
+                    direction,
+                    row["formation_index"],
+                    start_time,
+                    invalidation_price,
+                    type="bb",
+                )
+            else:
+                mb = self.factory.find_breaker_mitigation_block_in_leg(
+                    leg_before_data,
+                    klines_data,
+                    direction,
+                    row["formation_index"],
+                    start_time,
+                    invalidation_price,
+                    type="mb",
+                )
 
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
             if bb:
                 self.all_blocks[direction].append(bb)
+            if mb:
+                self.all_blocks[direction].append(mb)
             if ob:
                 self.all_blocks[direction].append(ob)
 
