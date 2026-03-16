@@ -76,10 +76,8 @@ class PositionSimulator:
         """Locates the first candle to hit entry and stoploss."""
         if pos.type == "long":
             entry_cond = entry_lows <= pos.entry
-            stop_cond = stop_lows <= pos.stoploss
         else:
             entry_cond = entry_highs >= pos.entry
-            stop_cond = stop_highs >= pos.stoploss
 
         entry_hits = where(entry_cond)[0]
         if len(entry_hits) == 0:
@@ -87,9 +85,17 @@ class PositionSimulator:
 
         first_entry = entry_hits[0] + offset
 
-        stop_hits = where(stop_cond)[0]
-        first_stop = (stop_hits[0] + offset) if len(stop_hits) > 0 else None
+        stoploss_offset = first_entry
 
+        # The stoploss search window has to be limited to the candles after the first entry hit.
+        # first_entry is not used because it is globally indexed and not locally
+        if pos.type == "long":
+            stop_cond = stop_lows[entry_hits[0] :] <= pos.stoploss
+        else:
+            stop_cond = stop_highs[entry_hits[0] :] >= pos.stoploss
+
+        stop_hits = where(stop_cond)[0]
+        first_stop = (stop_hits[0] + stoploss_offset) if len(stop_hits) > 0 else None
         return first_entry, first_stop
 
     @staticmethod
@@ -102,11 +108,11 @@ class PositionSimulator:
     ):
         """Iterates through targets and manages the moving time window."""
         # Define the pool of price data (Highs for Longs, Lows for Shorts)
-        extrema_pool = klines.high if pos.type == "long" else klines.low
+        target_search_pool = klines.high if pos.type == "long" else klines.low
 
         # Define the search window between entry and stop
-        search_end = stop_index if stop_index else len(extrema_pool)
-        current_window = extrema_pool[entry_index:search_end]
+        search_end = stop_index if stop_index else len(target_search_pool)
+        current_window = target_search_pool[entry_index:search_end]
         current_global_offset = entry_index
 
         for target in pos.targets:
