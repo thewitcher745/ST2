@@ -7,11 +7,12 @@ from datetime import timedelta
 from typing import Iterator
 import numpy as np
 
-from .tick import Tick
+from ..tick import Tick
+from ..abstract_tick_provider import AbstractTickProvider
 from ...historical import KLinesData
 
 
-class TickProvider:
+class SimulatedTickProvider(AbstractTickProvider):
     def __init__(self, klines_data: KLinesData, tick_interval: float = 0.1):
         """
         Set up the TickProvider which would calculate the ticks.
@@ -21,7 +22,7 @@ class TickProvider:
             tick_interval: The interval, in seconds, between the ticks, default 5 seconds.
         """
         self.klines_data = klines_data
-        self.tick_interval = tick_interval
+        self._tick_interval = tick_interval
 
         timeframe_seconds = (klines_data.time[1] - klines_data.time[0]).total_seconds()
         self.candle_duration_seconds = timeframe_seconds
@@ -30,6 +31,10 @@ class TickProvider:
             raise ValueError("Not enough ticks per candle for the given tick_interval.")
 
         self._rng = np.random.default_rng()
+
+    @property
+    def tick_interval(self) -> float:
+        return self._tick_interval
 
     def _candle_times(self, candle_start_time) -> list:
         return [

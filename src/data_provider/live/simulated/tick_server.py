@@ -3,13 +3,16 @@ import json
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
-from .tick import Tick
-from .tick_provider import TickProvider
+from ..tick import Tick
+from ..abstract_tick_provider import AbstractTickProvider
 
 
 class TickWebsocketServer:
     def __init__(
-        self, tick_provider: TickProvider, host: str = "127.0.0.1", port: int = 5000
+        self,
+        tick_provider: AbstractTickProvider,
+        host: str = "127.0.0.1",
+        port: int = 5000,
     ):
         self.tick_provider = tick_provider
         self.clients = set()

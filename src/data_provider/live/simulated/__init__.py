@@ -4,7 +4,7 @@ pandas dataframe.
 """
 
 from .tick_server import TickWebsocketServer
-from .tick_provider import TickProvider
+from .tick_provider import SimulatedTickProvider
 
 
-__all__ = ["TickWebsocketServer", "TickProvider"]
+__all__ = ["TickWebsocketServer", "SimulatedTickProvider"]
