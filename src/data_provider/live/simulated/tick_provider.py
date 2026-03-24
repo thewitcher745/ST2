@@ -22,7 +22,7 @@ class SimulatedTickProvider(AbstractTickProvider):
             tick_interval: The interval, in seconds, between the ticks, default 5 seconds.
         """
         self.klines_data = klines_data
-        self._tick_interval = tick_interval
+        self._min_interval = tick_interval
 
         timeframe_seconds = (klines_data.time[1] - klines_data.time[0]).total_seconds()
         self.candle_duration_seconds = timeframe_seconds
@@ -33,12 +33,12 @@ class SimulatedTickProvider(AbstractTickProvider):
         self._rng = np.random.default_rng()
 
     @property
-    def tick_interval(self) -> float:
-        return self._tick_interval
+    def min_interval(self) -> float:
+        return self._min_interval
 
     def _candle_times(self, candle_start_time) -> list:
         return [
-            candle_start_time + timedelta(seconds=i * self.tick_interval)
+            candle_start_time + timedelta(seconds=i * self.min_interval)
             for i in range(self.ticks_per_candle)
         ]
 
