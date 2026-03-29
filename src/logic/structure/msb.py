@@ -1,7 +1,8 @@
 from typing import Dict, Optional, Union
 from numpy.lib.stride_tricks import sliding_window_view
+from numpy.typing import NDArray
 from pandas import DataFrame
-import numpy as np
+from numpy import array
 
 from ...config.config_provider import Config
 
@@ -26,7 +27,7 @@ class MSBIdentifier:
         self.bearish_patterns = [("HL", "HH", "LL"), ("HL", "LH", "LL")]
 
     def _match_sequence(
-        self, sequence: np.ndarray
+        self, sequence: NDArray
     ) -> Optional[Dict[str, Union[str, int, tuple]]]:
         """Matches a 3-pivot window against MSB definitions."""
         seq_tuple = tuple(sequence)
@@ -66,9 +67,9 @@ class MSBIdentifier:
                 ]
             )
 
-        tags = np.array(structure_list)
-        k_idx = np.array(klines_indices)
-        prices = np.array(pivot_values)
+        tags = array(structure_list)
+        k_idx = array(klines_indices)
+        prices = array(pivot_values)
 
         # 1. Create 4-pivot windows
         tag_windows = sliding_window_view(tags, 4)

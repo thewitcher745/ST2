@@ -1,7 +1,8 @@
 from abc import ABC
 from typing import Any, Dict
 from pandas import Timestamp
-import numpy as np
+from numpy.typing import NDArray
+from numpy import where
 
 
 class Block(ABC):
@@ -37,23 +38,23 @@ class Block(ABC):
 
         self.id = f"{'Bu' if self.direction == 'bullish' else 'Be'}_{self.block_type}_{base_candle_time.strftime('%Y-%m-%dT%H:%M:%S')}"
 
-    def check_end_candle(self, klines_df_close_array: np.ndarray):
+    def check_end_candle(self, klines_df_close_array: NDArray):
         """
         This method checks if the price has closed below/above the invalidation price.
         """
         closes_after_start = klines_df_close_array[self.base_candle_index :]
 
         if self.direction == "bullish":
-            invalidating_candles = np.where(
-                closes_after_start < self.invalidation_price
-            )[0]
+            invalidating_candles = where(closes_after_start < self.invalidation_price)[
+                0
+            ]
             if len(invalidating_candles):
                 return invalidating_candles[0] + self.base_candle_index
 
         else:
-            invalidating_candles = np.where(
-                closes_after_start > self.invalidation_price
-            )[0]
+            invalidating_candles = where(closes_after_start > self.invalidation_price)[
+                0
+            ]
             if len(invalidating_candles):
                 return invalidating_candles[0] + self.base_candle_index
 

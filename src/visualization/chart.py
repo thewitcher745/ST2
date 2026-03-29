@@ -1,6 +1,6 @@
 from typing import Any
 import plotly.graph_objects as go
-from pandas import DataFrame, NaT
+from pandas import DataFrame, NaT, notna
 import numpy as np
 
 
@@ -250,8 +250,8 @@ class ChartManager:
 
     def add_positions(self, positions_df):
         """
-        Draws lines representing the entry, targets and stops of a dataframe of positions.
-        """
+        Draws lines representing the entry, targets and stops of a dataframe of positions."""
+
         colors = [
             "cyan",
             "magenta",
@@ -264,82 +264,86 @@ class ChartManager:
             "lime",
             "gold",
         ]
+
         for i, row in positions_df.iterrows():
-            if row["entry_time"] is not NaT:
-                # Marker for entry
+            # Check if the position has been entered.
+            if not row["entered"]:
+                continue
+
+            color = colors[i % len(colors)]
+
+            # Prepare the list of times and prices
+            times = []
+            prices = []
+
+            # 1. Add entry
+            times.append(row["entry_time"])
+            prices.append(row["entry"])
+
+            # 2. Add targets
+            if row["highest_target"] > 0:
+                for target_time, target_price in zip(
+                    row["target_times"], row["targets"]
+                ):
+                    times.append(target_time)
+                    prices.append(target_price)
+
+            # 3. Add stoploss if present
+            exit_type = row.get("exit_type", None)
+            if not notna(exit_type):
+                continue
+            
+            if exit_type.startswith("STOPLOSS_"):
+                times.append(row["stop_time"])
+                prices.append(row["stop_price"])
+
+            dashed_line = exit_type.startswith("STOPLOSS_")
+
+            # Draw entry as a circle
+            self._fig.add_trace(
+                go.Scatter(
+                    x=[times[0]],  # Entry time
+                    y=[prices[0]],  # Entry price
+                    mode="markers",
+                    marker=dict(
+                        size=10, color=color, symbol="circle"
+                    ),  # Circle for entry
+                    name=f"Entry Point - {i + 1}",
+                )
+            )
+
+            # Draw lines between points
+            for j in range(len(times) - 1):
                 self._fig.add_trace(
                     go.Scatter(
-                        x=[row["entry_time"]],
-                        y=[row["entry"]],
-                        mode="markers",
-                        marker=dict(
-                            size=10,
-                            color=colors[i % len(colors)],
-                            symbol="circle",
-                            line=dict(width=2, color="LightBlue"),
+                        x=[times[j], times[j + 1]],
+                        y=[prices[j], prices[j + 1]],
+                        mode="lines+markers",
+                        line=dict(
+                            color=color,
+                            width=2,
+                            dash="dash"
+                            if dashed_line and j == len(times) - 2
+                            else "solid",
                         ),
+                        marker=dict(size=6, color=color),
+                        name=f"Line Segment - {i + 1}",
                     )
                 )
 
-                if row["target_times"] is not None and len(row["target_times"]) > 0:
-                    prev_time = row["entry_time"]
-                    prev_price = row["entry"]
-                    for t_time, t_price in zip(row["target_times"], row["targets"]):
-                        # Line from previous (entry or previous target) to current target
-                        self._fig.add_trace(
-                            go.Scatter(
-                                x=[prev_time, t_time],
-                                y=[prev_price, t_price],
-                                mode="lines+markers",
-                                line=dict(color=colors[i % len(colors)], width=2),
-                                marker=dict(size=6, color=colors[i % len(colors)]),
-                                name=f"Target {i + 1}",
-                            )
-                        )
-                        prev_time, prev_price = (
-                            t_time,
-                            t_price,
-                        )  # Update for next segment
-
-                if row["stop_time"] is not NaT:
-                    # If the position has hit ANY targets, draw a line connecting the last target hit
-                    # to the stoploss.
-                    if row["status"] != "STOPLOSS":
-                        highest_target = int(row["status"].split("_")[-1])
-                        last_time = row["target_times"][-1]
-                        last_price = row["targets"][highest_target - 1]
-                    # If no targets are registered, just connect the entry to the stoploss
-                    else:
-                        last_time = row["entry_time"]
-                        last_price = row["entry"]
-
-                    # Don't draw the line connecting the last target to the stoploss if the position has achieved all targets
-                    if not row["full_target"]:
-                        self._fig.add_trace(
-                            go.Scatter(
-                                x=[last_time, row["stop_time"]],
-                                y=[last_price, row["stoploss"]],
-                                mode="lines",
-                                line=dict(
-                                    color=colors[i % len(colors)], width=2, dash="dash"
-                                ),
-                                name=f"Stop {i + 1}",
-                            )
-                        )
-
-                        self._fig.add_trace(
-                            go.Scatter(
-                                x=[row["stop_time"]],
-                                y=[row["stoploss"]],
-                                mode="markers",
-                                marker=dict(
-                                    size=10,
-                                    color=colors[i % len(colors)],
-                                    symbol="circle",
-                                    line=dict(width=2, color="DarkRed"),
-                                ),
-                            )
-                        )
+            # Draw stoploss if present as a cross
+            if exit_type.startswith("STOPLOSS_"):
+                self._fig.add_trace(
+                    go.Scatter(
+                        x=[row["stop_time"]],
+                        y=[row["stop_price"]],
+                        mode="markers",
+                        marker=dict(
+                            size=10, color=color, symbol="x"
+                        ),  # Cross for stoploss
+                        name=f"Stoploss - {i + 1}",
+                    )
+                )
 
     def _apply_zoom(self):
         """Applies the zoom to the chart."""

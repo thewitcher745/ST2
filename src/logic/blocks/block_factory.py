@@ -1,6 +1,6 @@
 from typing import Literal
 from pandas import Timestamp
-import numpy as np
+from numpy import where
 
 from ..structure.leg import Leg
 from ...data_provider import KLinesData
@@ -9,7 +9,7 @@ from .block import Block
 
 class BlockFactory:
     @staticmethod
-    def find_last_candle_of_color(leg: Leg, color: str) -> int:
+    def find_last_candle_of_color(leg: Leg, color: str) -> int | None:
         """
         Finds the last candle of a given color in a Leg.
 
@@ -24,9 +24,9 @@ class BlockFactory:
         red_bool_filter = ~green_bool_filter
 
         if color == "green":
-            candles_of_color = np.where(green_bool_filter)[0]
+            candles_of_color = where(green_bool_filter)[0]
         else:
-            candles_of_color = np.where(red_bool_filter)[0]
+            candles_of_color = where(red_bool_filter)[0]
 
         try:
             return int(candles_of_color[-1] + leg.leg_start_kline_index)
