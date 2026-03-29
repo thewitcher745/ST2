@@ -5,9 +5,11 @@ from numpy.lib.stride_tricks import sliding_window_view
 from ...data_provider import KLinesData
 from ...config import Config
 
+config = Config()
+
 
 class Zigzag:
-    def __init__(self, window_size: int = int(Config().lag)):
+    def __init__(self, window_size: int = int(config.get("lag"))):
         self.window_size = window_size
 
     def calculate(self, klines_data: KLinesData) -> DataFrame:

@@ -22,3 +22,9 @@ class Config:
             output += f"\t{key}: {value}\n"
 
         return output
+
+    def get(self, param_label: str):
+        try:
+            return getattr(self, param_label)
+        except AttributeError:
+            raise ValueError

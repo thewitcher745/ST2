@@ -16,7 +16,7 @@ config = Config()
 class StoplossProvider:
     @staticmethod
     def get_stoplosses(position) -> NDArray[float64]:
-        method = config.stoploss_setup_function
+        method = config.get("stoploss_setup_function")
         return getattr(StoplossProvider, method)(position)
 
     @staticmethod
@@ -25,7 +25,7 @@ class StoplossProvider:
         No trailing stoploss configuration. Fixed stoploss all the way.
         """
         base_height = position.base_block.height
-        stoploss_coeff = float(config.stoploss_coeff)
+        stoploss_coeff = float(config.get("stoploss_coeff"))
         # Length is number of targets - 1, plus one for the entry, so length of targets
         sl_array_length = len(position.targets)
 
@@ -46,7 +46,7 @@ class StoplossProvider:
         No trailing stoploss configuration. Fixed stoploss all the way.
         """
         base_height = position.base_block.height
-        stoploss_coeff = float(config.stoploss_coeff)
+        stoploss_coeff = float(config.get("stoploss_coeff"))
         # Length is number of targets - 1, plus one for the entry, so length of targets
         sl_array_length = len(position.targets)
 
