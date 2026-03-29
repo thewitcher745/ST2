@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 from numpy import where, array
 from numpy.typing import NDArray
 from .position import Position

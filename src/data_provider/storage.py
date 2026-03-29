@@ -5,7 +5,7 @@ It also defines the klines_df dataframe column as numpy arrays for fast access.
 
 from numpy import array, float64
 from numpy.typing import NDArray
-from pandas import DataFrame, Timestamp
+from pandas import DataFrame
 
 
 class KLinesData:
