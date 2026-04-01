@@ -18,9 +18,20 @@ class ConnectionClosedCleanly(Exception):
 
 
 class BinanceTickProvider(AbstractTickProvider):
-    def __init__(self, symbol: str, min_interval: float = 0.1):
-        self._symbol: str = symbol.lower()
-        self._min_interval: float = min_interval
+    def __init__(self, symbols: list[str] | str, tick_interval: float = 0.1):
+        """
+        Set up the TickProvider which would calculate the ticks.
+
+        Args:
+            tick_interval: The amount of time between updates, in seconds.
+        """
+        self._symbols: list[str]
+        if isinstance(symbols, list):
+            self._symbols = [symbol.lower() for symbol in symbols]
+        elif isinstance(symbols, str):
+            self._symbols = [symbols.lower()]
+
+        self._min_interval: float = tick_interval
         self._latest_tick: Tick | None = None
         self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self._thread: threading.Thread = threading.Thread(
@@ -41,10 +52,13 @@ class BinanceTickProvider(AbstractTickProvider):
         return self._min_interval
 
     async def _listen(self):
-        url: str = (
-            config.get("binance_ws_endpoint")
-            + f"{self._symbol.lower()}@kline_{config.get('timeframe')}"
-        )
+        streams = [
+            f"{symbol.lower()}@kline_{config.get('timeframe')}"
+            for symbol in self._symbols
+        ]
+        streams_string = "/".join(streams)
+        url: str = config.get("binance_ws_endpoint") + "?streams=" + streams_string
+        print(url)
         # This infinite loop tries to reconnect if the connection is severed cleanly. Otherwise it is broken.
         while True:
             self._listen_error = None
@@ -53,8 +67,8 @@ class BinanceTickProvider(AbstractTickProvider):
                     self._times_retried = 0
                     async for message in ws:
                         data = json.loads(message)
-                        k = data["k"]
-                        event_time = Timestamp(data["E"], unit="ms")
+                        k = data["data"]["k"]
+                        event_time = Timestamp(data["data"]["E"], unit="ms")
                         candle_open_time = Timestamp(k["t"], unit="ms")
 
                         assert isinstance(event_time, Timestamp)
@@ -87,7 +101,6 @@ class BinanceTickProvider(AbstractTickProvider):
                 await asyncio.sleep(config.get("ws_error_retry_interval"))
 
     def ticks(self) -> Iterator[Tick]:
-
         # If the ticks() method is already running on an instance, don't run it again.
         if self._running:
             raise RuntimeError("ticks() is already running.")
