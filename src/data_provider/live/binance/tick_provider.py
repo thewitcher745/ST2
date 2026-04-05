@@ -1,9 +1,7 @@
 import asyncio
-import threading
-from time import sleep
 from pandas import Timestamp
 from websockets.asyncio.client import connect
-from typing import Iterator
+from typing import AsyncGenerator
 import json
 
 from ..abstract_tick_provider import AbstractTickProvider
@@ -18,7 +16,7 @@ class ConnectionClosedCleanly(Exception):
 
 
 class BinanceTickProvider(AbstractTickProvider):
-    def __init__(self, symbols: list[str] | str, tick_interval: float = 0.1):
+    def __init__(self, symbols: list[str] | str):
         """
         Set up the TickProvider which would calculate the ticks.
 
@@ -31,25 +29,17 @@ class BinanceTickProvider(AbstractTickProvider):
         elif isinstance(symbols, str):
             self._symbols = [symbols.lower()]
 
-        self._min_interval: float = tick_interval
         self._latest_tick: Tick | None = None
-        self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
-        self._thread: threading.Thread = threading.Thread(
-            target=self._loop.run_forever, daemon=True
-        )
         self._listen_error: Exception | None = None
         self._times_retried: int = 0
         self._running = False
         # A flag visible to both threads which is used to gracefully stop both threads.
-        self._stop_event: threading.Event = threading.Event()
+        self._stop_event: asyncio.Event = asyncio.Event()
 
     def stop(self) -> None:
         self._stop_event.set()
         self._running = False
 
-    @property
-    def min_interval(self) -> float:
-        return self._min_interval
 
     async def _listen(self):
         streams = [
@@ -100,27 +90,16 @@ class BinanceTickProvider(AbstractTickProvider):
                 self._times_retried += 1
                 await asyncio.sleep(config.get("ws_error_retry_interval"))
 
-    def ticks(self) -> Iterator[Tick]:
-        # If the ticks() method is already running on an instance, don't run it again.
+    async def ticks(self) -> AsyncGenerator[Tick, None]:
         if self._running:
             raise RuntimeError("ticks() is already running.")
         self._running = True
         self._stop_event.clear()
-
-        # start the WS listener as a background task, yield the latest result at every sleep
-        update_interval: float = float(config.get("update_interval"))
-        if update_interval < float(config.get("binance_kline_update_interval")):
-            raise ValueError(
-                "Update interval can't be less than two consecutive Binance ticks."
-            )
-
-        self._thread = threading.Thread(target=self._loop.run_forever, daemon=True)
-        self._thread.start()
-        asyncio.run_coroutine_threadsafe(self._listen(), self._loop)
-
+        asyncio.create_task(self._listen())
+        update_interval = float(config.get("update_interval"))
         while not self._stop_event.is_set():
             if self._listen_error is not None:
                 raise self._listen_error
             if self._latest_tick is not None:
                 yield self._latest_tick
-            sleep(update_interval)
+            await asyncio.sleep(update_interval)

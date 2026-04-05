@@ -3,17 +3,22 @@ This module provides the "ticks" necessary for the simulation, aka the server up
 that would aggregate to the higher-timeframe data.
 """
 
+import asyncio
 from datetime import timedelta
-from typing import Iterator
+from typing import AsyncGenerator
 import numpy as np
+from pandas import Timestamp
 
 from ..tick import Tick
 from ..abstract_tick_provider import AbstractTickProvider
 from ...historical import KLinesData
+from ....config import Config
+
+config = Config()
 
 
 class SimulatedTickProvider(AbstractTickProvider):
-    def __init__(self, klines_data: KLinesData, tick_interval: float = 0.1):
+    def __init__(self, klines_data: KLinesData):
         """
         Set up the TickProvider which would calculate the ticks.
 
@@ -22,23 +27,23 @@ class SimulatedTickProvider(AbstractTickProvider):
             tick_interval: The interval, in seconds, between the ticks, default 5 seconds.
         """
         self.klines_data = klines_data
-        self._min_interval = tick_interval
+        self.update_interval = float(config.get("update_interval"))
 
         timeframe_seconds = (klines_data.time[1] - klines_data.time[0]).total_seconds()
         self.candle_duration_seconds = timeframe_seconds
-        self.ticks_per_candle = int(self.candle_duration_seconds // self._min_interval)
+        self.ticks_per_candle = int(
+            self.candle_duration_seconds // self.update_interval
+        )
         if self.ticks_per_candle < 2:
-            raise ValueError("Not enough ticks per candle for the given tick_interval.")
+            raise ValueError(
+                "Not enough ticks per candle for the given update_interval."
+            )
 
         self._rng = np.random.default_rng()
 
-    @property
-    def min_interval(self) -> float:
-        return self._min_interval
-
     def _candle_times(self, candle_start_time) -> list:
         return [
-            candle_start_time + timedelta(seconds=i * self.min_interval)
+            candle_start_time + timedelta(seconds=i * self.update_interval)
             for i in range(self.ticks_per_candle)
         ]
 
@@ -77,6 +82,9 @@ class SimulatedTickProvider(AbstractTickProvider):
 
         ticks = []
         for i in range(N):
+            t0 = self.klines_data.time[candle_index]
+            assert isinstance(t0, Timestamp)
+
             ticks.append(
                 Tick(
                     event_time=times[i],
@@ -90,7 +98,9 @@ class SimulatedTickProvider(AbstractTickProvider):
             )
         return ticks
 
-    def ticks(self) -> Iterator[Tick]:
+    async def ticks(self) -> AsyncGenerator[Tick, None]:
+        update_interval = float(config.get("update_interval"))
         for i in range(self.klines_data.length):
             for tick in self._generate_candle_ticks(i):
                 yield tick
+                await asyncio.sleep(update_interval)
