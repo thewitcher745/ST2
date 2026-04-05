@@ -10,10 +10,9 @@ from pandas import DataFrame
 
 class KLinesData:
     def __init__(self, klines_df: DataFrame):
-        self.klines_df = klines_df
-        self.time: NDArray = array(self.klines_df.time, dtype=object)
-        self.open: NDArray[float64] = array(self.klines_df.open)
-        self.high: NDArray[float64] = array(self.klines_df.high)
-        self.low: NDArray[float64] = array(self.klines_df.low)
-        self.close: NDArray[float64] = array(self.klines_df.close)
+        self.time: NDArray = array(klines_df.time, dtype=object)
+        self.open: NDArray[float64] = array(klines_df.open)
+        self.high: NDArray[float64] = array(klines_df.high)
+        self.low: NDArray[float64] = array(klines_df.low)
+        self.close: NDArray[float64] = array(klines_df.close)
         self.length = len(self.close)
