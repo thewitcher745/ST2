@@ -1,6 +1,5 @@
 import asyncio
 import json
-from typing import Optional
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 

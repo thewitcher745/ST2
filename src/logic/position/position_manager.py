@@ -1,9 +1,9 @@
 from pandas import DataFrame
 
-from ...data_provider import KLinesData
+from ...data_provider.historical import KLinesData
 from .position import Position
 from ..blocks.block import Block
-from .position_simulator import PositionSimulator
+from ..backtest import PositionSimulator
 
 
 class PositionManager:

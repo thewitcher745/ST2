@@ -2,8 +2,7 @@ from datetime import timedelta
 import os
 from pandas import DataFrame, read_feather
 
-from .binance_live import BinanceDataProvider
-
+from .binance_cache import BinanceDataProvider
 from .base import DataProvider
 
 

@@ -2,7 +2,7 @@ from pandas import DataFrame
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
-from ...data_provider import KLinesData
+from ...data_provider.historical import KLinesData
 from ...config import Config
 
 config = Config()

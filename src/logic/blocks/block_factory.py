@@ -3,7 +3,7 @@ from pandas import Timestamp
 from numpy import where
 
 from ..structure.leg import Leg
-from ...data_provider import KLinesData
+from ...data_provider.historical import KLinesData
 from .block import Block
 
 

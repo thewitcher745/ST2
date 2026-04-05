@@ -8,7 +8,7 @@ from typing import Iterator
 import numpy as np
 
 from .tick import Tick
-from ..storage import KLinesData
+from ...historical import KLinesData
 
 
 class TickProvider:

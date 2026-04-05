@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from ...data_provider import KLinesData
+from ...data_provider.historical import KLinesData
 from .block import Block
 from .block_factory import BlockFactory
 from ..structure.leg import Leg
