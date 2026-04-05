@@ -1,6 +1,7 @@
-from pandas import DataFrame
+from typing import Literal
+from pandas import DataFrame, Timestamp
 
-from ...data_provider.historical import KLinesData
+from ...data_provider import KLinesData
 from .block import Block
 from .block_factory import BlockFactory
 from ..structure.leg import Leg
@@ -20,7 +21,7 @@ class BlockManager:
         This is the iteration logic. It processes the MSB signals and populates the block list.
         """
         for _, row in msbs_df.iterrows():
-            direction = row["direction"]
+            direction: Literal["bullish", "bearish"] = row["direction"].item()
             # Slice the leg before the break
             # "before" is the leg that ends at the MSB, "after" is the leg that starts with the MSB
             start_before, end_before = row["leg_before"]
@@ -30,7 +31,8 @@ class BlockManager:
             leg_after_data = Leg(start_after, end_after, klines_data)
 
             # The index and time of the candle which creates the MSB.
-            start_time = klines_data.time[row["formation_index"]]
+            start_time = klines_data.time[row["formation_index"].item()]
+            assert isinstance(start_time, Timestamp)
 
             # Initially when the block forms, its invalidation price level should be the price value of the pivot
             # succeeding the pivot which the MSB is located. If a candle "CLOSES" above/below this price, the block is
@@ -43,12 +45,13 @@ class BlockManager:
                 invalidation_price = klines_data.high[
                     zigzag_df.iloc[row["pivot_index"] + 1].kline_index
                 ]
+            assert isinstance(invalidation_price, float)
 
             ob = self.factory.find_order_block_in_leg(
                 leg_after_data,
                 klines_data,
                 direction,
-                row["formation_index"],
+                row["formation_index"].item(),
                 start_time,
                 invalidation_price,
             )
@@ -62,20 +65,20 @@ class BlockManager:
                     leg_before_data,
                     klines_data,
                     direction,
-                    row["formation_index"],
+                    row["formation_index"].item(),
                     start_time,
                     invalidation_price,
-                    type="bb",
+                    type="BB",
                 )
             else:
                 mb = self.factory.find_breaker_mitigation_block_in_leg(
                     leg_before_data,
                     klines_data,
                     direction,
-                    row["formation_index"],
+                    row["formation_index"].item(),
                     start_time,
                     invalidation_price,
-                    type="mb",
+                    type="MB",
                 )
 
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
@@ -107,6 +110,7 @@ class BlockManager:
                     current_end_time = klines_data.time[current_end_index]
                     # Set the end index and end time for the current block.
                     block.end_index = current_end_index
+                    assert isinstance(current_end_time, Timestamp)
                     block.end_time = current_end_time
 
                     # If we are checking the first block (of each direction), since there are no blocks before

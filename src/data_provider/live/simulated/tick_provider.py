@@ -11,7 +11,7 @@ from pandas import Timestamp
 
 from ..tick import Tick
 from ..abstract_tick_provider import AbstractTickProvider
-from ...historical import KLinesData
+from ...klines_data import KLinesData
 from ....config import Config
 
 config = Config()

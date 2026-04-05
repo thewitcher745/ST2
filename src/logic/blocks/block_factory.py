@@ -3,7 +3,7 @@ from pandas import Timestamp
 from numpy import where
 
 from ..structure.leg import Leg
-from ...data_provider.historical import KLinesData
+from ...data_provider import KLinesData
 from .block import Block
 
 
@@ -37,7 +37,7 @@ class BlockFactory:
     def find_order_block_in_leg(
         leg: Leg,
         klines_data: KLinesData,
-        direction: str,
+        direction: Literal["bullish", "bearish"],
         start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
@@ -85,11 +85,11 @@ class BlockFactory:
     def find_breaker_mitigation_block_in_leg(
         leg: Leg,
         klines_data: KLinesData,
-        direction: str,
+        direction: Literal["bullish", "bearish"],
         start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
-        type=Literal["bb", "mb"],
+        type: Literal["BB", "MB"],
     ) -> Block | None:
         """
         This function takes a leg which is a Leg object, essentially a slice of a KLines dataframe,
@@ -115,7 +115,7 @@ class BlockFactory:
 
         # If such a candle is found, return the order block constructed on that base candle
         if base_candle_index:
-            if type == "bb":
+            if type == "BB":
                 return Block(
                     base_candle_index,
                     base_candle_time=klines_data.time[base_candle_index],

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict
+from typing import Any, Dict, Literal, Optional
 from pandas import Timestamp
 from numpy.typing import NDArray
 from numpy import where
@@ -14,27 +14,29 @@ class Block(ABC):
         self,
         base_candle_index: int,
         base_candle_time: Timestamp,
-        direction: str,
-        block_type: str,
+        direction: Literal["bullish", "bearish"],
+        block_type: Literal["BB", "MB", "OB"],
         low: float,
         high: float,
         start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
     ):
-        self.base_candle_index = base_candle_index
-        self.base_candle_time = base_candle_time
-        self.direction = direction  # 'bullish' or 'bearish'
-        self.block_type = block_type  # 'OB', 'BB', or 'MB'
-        self.low = low
-        self.high = high
-        self.height = high - low
-        self.height_percentage = (high - low) / ((high + low) / 2) * 100
-        self.start_index = start_index
-        self.start_time = start_time
-        self.end_time = None
-        self.end_index = None
-        self.invalidation_price = invalidation_price
+        self.base_candle_index: int = base_candle_index
+        self.base_candle_time: Timestamp = base_candle_time
+        self.direction: Literal["bullish", "bearish"] = (
+            direction  # 'bullish' or 'bearish'
+        )
+        self.block_type: Literal["BB", "MB", "OB"] = block_type  # 'OB', 'BB', or 'MB'
+        self.low: float = low
+        self.high: float = high
+        self.height: float = high - low
+        self.height_percentage: float = (high - low) / ((high + low) / 2) * 100
+        self.start_index: int = start_index
+        self.start_time: Timestamp = start_time
+        self.end_time: Optional[Timestamp] = None
+        self.end_index: Optional[int] = None
+        self.invalidation_price: float = invalidation_price
 
         self.id = f"{'Bu' if self.direction == 'bullish' else 'Be'}_{self.block_type}_{base_candle_time.strftime('%Y-%m-%dT%H:%M:%S')}"
 

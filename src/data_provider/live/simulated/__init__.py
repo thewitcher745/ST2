@@ -3,8 +3,7 @@ This folder contains modules that would simulate live forward test data from a c
 pandas dataframe.
 """
 
-from .tick_server import TickWebsocketServer
 from .tick_provider import SimulatedTickProvider
 
 
-__all__ = ["TickWebsocketServer", "SimulatedTickProvider"]
+__all__ = ["SimulatedTickProvider"]

@@ -2,7 +2,7 @@ from typing import Literal
 from numpy import where, array
 from numpy.typing import NDArray
 from ..position.position import Position
-from ...data_provider.historical import KLinesData
+from ...data_provider import KLinesData
 from ...config import Config
 from ..position.utils import change_directions_dict
 
