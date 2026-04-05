@@ -1,10 +1,10 @@
 from typing import Literal
 from numpy import where, array
 from numpy.typing import NDArray
-from .position import Position
+from ..position.position import Position
 from ...data_provider import KLinesData
 from ...config import Config
-from .utils import change_directions_dict
+from ..position.utils import change_directions_dict
 
 config = Config()
 
