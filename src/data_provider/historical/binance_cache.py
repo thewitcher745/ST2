@@ -5,11 +5,21 @@ from binance.client import Client
 from pandas import DataFrame, to_datetime
 
 from .base import DataProvider
+from ...config import Config
+
+config = Config()
 
 
 class BinanceDataProvider(DataProvider):
     def __init__(self, api_key: str = "", api_secret: str = ""):
-        self.client = Client(api_key, api_secret)
+        proxy = config.get("proxy_server")
+        self.client = Client(
+            api_key,
+            api_secret,
+            requests_params={"proxies": {"http": proxy, "https": proxy}}
+            if proxy
+            else {},
+        )
 
     def get_latest_klines(
         self,
@@ -41,7 +51,9 @@ class BinanceDataProvider(DataProvider):
             # Sanitize and name the dataframe columns
             cols = ["time", "open", "high", "low", "close"]
             df.columns = cols
-            df["time"] = to_datetime(df["time"], unit="ms", utc=True).dt.tz_convert(None)
+            df["time"] = to_datetime(df["time"], unit="ms", utc=True).dt.tz_convert(
+                None
+            )
             float_cols = ["open", "high", "low", "close"]
             df[float_cols] = df[float_cols].astype(float)
 
