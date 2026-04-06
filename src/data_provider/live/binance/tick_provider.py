@@ -18,10 +18,7 @@ class ConnectionClosedCleanly(Exception):
 class BinanceTickProvider(AbstractTickProvider):
     def __init__(self, symbols: list[str] | str):
         """
-        Set up the TickProvider which would calculate the ticks.
-
-        Args:
-            tick_interval: The amount of time between updates, in seconds.
+        Set up the TickProvider which would calculate the ticks, supports multiple symbols.
         """
         self._symbols: list[str]
         if isinstance(symbols, list):
@@ -29,7 +26,7 @@ class BinanceTickProvider(AbstractTickProvider):
         elif isinstance(symbols, str):
             self._symbols = [symbols.lower()]
 
-        self._latest_tick: Tick | None = None
+        self._latest_ticks: dict[str, Tick] = {}
         self._listen_error: Exception | None = None
         self._times_retried: int = 0
         self._running = False
@@ -39,7 +36,6 @@ class BinanceTickProvider(AbstractTickProvider):
     def stop(self) -> None:
         self._stop_event.set()
         self._running = False
-
 
     async def _listen(self):
         streams = [
@@ -64,7 +60,8 @@ class BinanceTickProvider(AbstractTickProvider):
                         assert isinstance(event_time, Timestamp)
                         assert isinstance(candle_open_time, Timestamp)
 
-                        self._latest_tick = Tick(
+                        self._latest_ticks[data["data"]["s"]] = Tick(
+                            symbol=data["data"]["s"],
                             event_time=event_time,
                             price=float(k["c"]),
                             open=float(k["o"]),
@@ -100,6 +97,6 @@ class BinanceTickProvider(AbstractTickProvider):
         while not self._stop_event.is_set():
             if self._listen_error is not None:
                 raise self._listen_error
-            if self._latest_tick is not None:
-                yield self._latest_tick
+            for tick in self._latest_ticks.values():
+                yield tick
             await asyncio.sleep(update_interval)

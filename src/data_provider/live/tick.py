@@ -4,6 +4,7 @@ from pandas import Timestamp
 
 @dataclass(frozen=True)
 class Tick:
+    symbol: str
     event_time: Timestamp
     price: float
     open: float

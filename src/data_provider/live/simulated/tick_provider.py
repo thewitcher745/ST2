@@ -18,7 +18,8 @@ config = Config()
 
 
 class SimulatedTickProvider(AbstractTickProvider):
-    def __init__(self, klines_data: KLinesData):
+    def __init__(self, klines_data: dict[str, KLinesData]):
+        
         """
         Set up the TickProvider which would calculate the ticks.
 
@@ -26,36 +27,43 @@ class SimulatedTickProvider(AbstractTickProvider):
             klines_data: The data that the ticks need to aggregate to.
             tick_interval: The interval, in seconds, between the ticks, default 5 seconds.
         """
-        self.klines_data = klines_data
+        self.klines_data = klines_data  # keyed by symbol
         self.update_interval = float(config.get("update_interval"))
+        self._latest_ticks: dict[str, Tick] = {}
+        self._simulate_error: Exception | None = None
+        self._stop_event: asyncio.Event = asyncio.Event()
+        self._running = False
 
-        timeframe_seconds = (klines_data.time[1] - klines_data.time[0]).total_seconds()
-        self.candle_duration_seconds = timeframe_seconds
-        self.ticks_per_candle = int(
-            self.candle_duration_seconds // self.update_interval
-        )
-        if self.ticks_per_candle < 2:
-            raise ValueError(
-                "Not enough ticks per candle for the given update_interval."
-            )
+        for kd in klines_data.values():
+            timeframe_seconds = (kd.time[1] - kd.time[0]).total_seconds()
+            ticks_per_candle = int(timeframe_seconds // self.update_interval)
+            if ticks_per_candle < 2:
+                raise ValueError(
+                    "Not enough ticks per candle for the given update_interval."
+                )
 
         self._rng = np.random.default_rng()
 
-    def _candle_times(self, candle_start_time) -> list:
+    def _candle_times(self, candle_start_time, ticks_per_candle: int) -> list:
         return [
             candle_start_time + timedelta(seconds=i * self.update_interval)
-            for i in range(self.ticks_per_candle)
+            for i in range(ticks_per_candle)
         ]
 
-    def _generate_candle_ticks(self, candle_index: int) -> list[Tick]:
-        t0 = self.klines_data.time[candle_index]
-        O = float(self.klines_data.open[candle_index])
-        H = float(self.klines_data.high[candle_index])
-        L = float(self.klines_data.low[candle_index])
-        C = float(self.klines_data.close[candle_index])
+    def _generate_candle_ticks(self, symbol: str, candle_index: int) -> list[Tick]:
+        kd = self.klines_data[symbol]
+        timeframe_seconds = (kd.time[1] - kd.time[0]).total_seconds()
+        ticks_per_candle = int(timeframe_seconds // self.update_interval)
 
-        N = self.ticks_per_candle
-        times = self._candle_times(t0)
+        t0 = kd.time[candle_index]
+        assert isinstance(t0, Timestamp)
+        O = float(kd.open[candle_index])
+        H = float(kd.high[candle_index])
+        L = float(kd.low[candle_index])
+        C = float(kd.close[candle_index])
+
+        N = ticks_per_candle
+        times = self._candle_times(t0, N)
         x = np.arange(N, dtype=float)
 
         idx_h = self._rng.integers(1, N - 1)
@@ -71,36 +79,54 @@ class SimulatedTickProvider(AbstractTickProvider):
         y_anchor = np.array([anchor_points[int(k)] for k in x_anchor], dtype=float)
 
         y = np.interp(x, x_anchor, y_anchor)
-
         noise_level = 0.01 * (H - L)
-        noise = self._rng.normal(0, noise_level, N)
-        y = y + noise
+        y = y + self._rng.normal(0, noise_level, N)
         y = np.clip(y, L, H)
-
         y[0] = O
         y[-1] = C
 
-        ticks = []
-        for i in range(N):
-            t0 = self.klines_data.time[candle_index]
-            assert isinstance(t0, Timestamp)
-
-            ticks.append(
-                Tick(
-                    event_time=times[i],
-                    price=float(y[i]),
-                    open=O,
-                    high=float(np.max(y[: i + 1])),
-                    low=float(np.min(y[: i + 1])),
-                    close=float(y[i]),
-                    timestamp=t0,
-                )
+        return [
+            Tick(
+                symbol=symbol,
+                event_time=times[i],
+                price=float(y[i]),
+                open=O,
+                high=float(np.max(y[: i + 1])),
+                low=float(np.min(y[: i + 1])),
+                close=float(y[i]),
+                timestamp=t0,
             )
-        return ticks
+            for i in range(N)
+        ]
+
+    async def _simulate_symbol(self, symbol: str) -> None:
+        try:
+            kd = self.klines_data[symbol]
+            for i in range(kd.length):
+                for tick in self._generate_candle_ticks(symbol, i):
+                    if self._stop_event.is_set():
+                        return
+                    self._latest_ticks[symbol] = tick
+                    await asyncio.sleep(self.update_interval)
+        except Exception as e:
+            self._simulate_error = e
 
     async def ticks(self) -> AsyncGenerator[Tick, None]:
-        update_interval = float(config.get("update_interval"))
-        for i in range(self.klines_data.length):
-            for tick in self._generate_candle_ticks(i):
+        if self._running:
+            raise RuntimeError("ticks() is already running.")
+        self._running = True
+        self._stop_event.clear()
+
+        for symbol in self.klines_data:
+            asyncio.create_task(self._simulate_symbol(symbol))
+
+        while not self._stop_event.is_set():
+            if self._simulate_error is not None:
+                raise self._simulate_error
+            for tick in list(self._latest_ticks.values()):
                 yield tick
-                await asyncio.sleep(update_interval)
+            await asyncio.sleep(self.update_interval)
+
+    def stop(self) -> None:
+        self._stop_event.set()
+        self._running = False
