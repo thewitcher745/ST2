@@ -13,6 +13,18 @@ class BlockManager:
     def __init__(self):
         self.factory = BlockFactory()
         self.all_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
+        self.active_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
+        # The timestamp of the first active block's forming MSB
+        # This is used for the forward test and before this timestamp MSB's aren't added to all blocks.
+        # It's just an optimization step to avoid repeating old, ended blocks.
+        self._first_active_block_msb_index: dict[str, None | int] = {
+            "bullish": None,
+            "bearish": None,
+        }
+
+    def reset_blocks(self):
+        self.all_blocks = {"bullish": [], "bearish": []}
+        self.active_blocks = {"bullish": [], "bearish": []}
 
     def add_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData
@@ -20,8 +32,20 @@ class BlockManager:
         """
         This is the iteration logic. It processes the MSB signals and populates the block list.
         """
+        self.reset_blocks()
         for _, row in msbs_df.iterrows():
             direction: Literal["bullish", "bearish"] = row["direction"]  # type: ignore[assignment]
+
+            # If the MSB being processed has a KLine index earlier than that of the first active block found in
+            # older iterations of the forward test, completely skip adding it to the list. Only do this if
+            # the first active block msb index is registered already.
+            truncation_index = self._first_active_block_msb_index[direction]
+            msb_kline_index = row["kline_index"]
+            assert isinstance(msb_kline_index, int)
+            if truncation_index is not None:
+                if msb_kline_index < truncation_index:
+                    continue
+
             # Slice the leg before the break
             # "before" is the leg that ends at the MSB, "after" is the leg that starts with the MSB
             start_before, end_before = row["leg_before"]
@@ -137,3 +161,14 @@ class BlockManager:
                         ):
                             old_block.end_index = current_end_index
                             old_block.end_time = current_end_time
+
+                # If no end index is found, it means the block has not ended yet, meaning it is still active.
+                # This is only useful for the forward test basically.
+                else:
+                    self.active_blocks[direction].append(block)
+
+            # At the end, register the MSB index of the earliest active block. This is used for the forward test.
+            if len(self.active_blocks[direction]) > 0:
+                self._first_active_block_msb_index[direction] = self.active_blocks[
+                    direction
+                ][0].msb_kline_index
