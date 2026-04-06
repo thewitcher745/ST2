@@ -10,8 +10,8 @@ import numpy as np
 from pandas import Timestamp
 
 from ..tick import Tick
-from ..abstract_tick_provider import AbstractTickProvider
 from src.data_provider import KLinesData
+from ..abstract_tick_provider import AbstractTickProvider
 from src.config import Config
 
 config = Config()
@@ -32,27 +32,28 @@ class SimulatedTickProvider(AbstractTickProvider):
         self._simulate_error: Exception | None = None
         self._stop_event: asyncio.Event = asyncio.Event()
         self._running = False
+        self._rng = np.random.default_rng()
 
         for kd in klines_data.values():
             timeframe_seconds = (kd.time[1] - kd.time[0]).total_seconds()
-            ticks_per_candle = int(timeframe_seconds // self.update_interval)
-            if ticks_per_candle < 2:
+            sim_interval = float(config.get("live_sim_tick_interval"))
+            if int(timeframe_seconds // sim_interval) < 2:
                 raise ValueError(
-                    "Not enough ticks per candle for the given update_interval."
+                    "Not enough ticks per candle for the given live_sim_interval."
                 )
 
-        self._rng = np.random.default_rng()
-
     def _candle_times(self, candle_start_time, ticks_per_candle: int) -> list:
+        sim_interval = float(config.get("live_sim_tick_interval"))
         return [
-            candle_start_time + timedelta(seconds=i * self.update_interval)
+            candle_start_time + timedelta(seconds=i * sim_interval)
             for i in range(ticks_per_candle)
         ]
 
     def _generate_candle_ticks(self, symbol: str, candle_index: int) -> list[Tick]:
         kd = self.klines_data[symbol]
+        sim_interval = float(config.get("live_sim_tick_interval"))
         timeframe_seconds = (kd.time[1] - kd.time[0]).total_seconds()
-        ticks_per_candle = int(timeframe_seconds // self.update_interval)
+        ticks_per_candle = int(timeframe_seconds // sim_interval)
 
         t0 = kd.time[candle_index]
         assert isinstance(t0, Timestamp)
@@ -98,15 +99,16 @@ class SimulatedTickProvider(AbstractTickProvider):
             for i in range(N)
         ]
 
-    async def _simulate_symbol(self, symbol: str) -> None:
+    async def _simulate_symbol(self, symbol: str, queue: asyncio.Queue[Tick]) -> None:
         try:
+            sim_interval = float(config.get("live_sim_tick_interval"))
             kd = self.klines_data[symbol]
             for i in range(kd.length):
                 for tick in self._generate_candle_ticks(symbol, i):
                     if self._stop_event.is_set():
                         return
-                    self._latest_ticks[symbol] = tick
-                    await asyncio.sleep(self.update_interval)
+                    await queue.put(tick)
+                    await asyncio.sleep(sim_interval)
         except Exception as e:
             self._simulate_error = e
 
@@ -115,16 +117,14 @@ class SimulatedTickProvider(AbstractTickProvider):
             raise RuntimeError("ticks() is already running.")
         self._running = True
         self._stop_event.clear()
-
+        queue: asyncio.Queue[Tick] = asyncio.Queue()
         for symbol in self.klines_data:
-            asyncio.create_task(self._simulate_symbol(symbol))
-
+            asyncio.create_task(self._simulate_symbol(symbol, queue))
         while not self._stop_event.is_set():
             if self._simulate_error is not None:
                 raise self._simulate_error
-            for tick in list(self._latest_ticks.values()):
-                yield tick
-            await asyncio.sleep(self.update_interval)
+            tick = await queue.get()
+            yield tick
 
     def stop(self) -> None:
         self._stop_event.set()

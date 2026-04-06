@@ -26,7 +26,6 @@ class BinanceTickProvider(AbstractTickProvider):
         elif isinstance(symbols, str):
             self._symbols = [symbols.lower()]
 
-        self._latest_ticks: dict[str, Tick] = {}
         self._listen_error: Exception | None = None
         self._times_retried: int = 0
         self._running = False
@@ -37,14 +36,14 @@ class BinanceTickProvider(AbstractTickProvider):
         self._stop_event.set()
         self._running = False
 
-    async def _listen(self):
+    async def _listen(self, queue: asyncio.Queue[Tick]):
         streams = [
             f"{symbol.lower()}@kline_{config.get('timeframe')}"
             for symbol in self._symbols
         ]
         streams_string = "/".join(streams)
         url: str = config.get("binance_ws_endpoint") + "?streams=" + streams_string
-        print(url)
+
         # This infinite loop tries to reconnect if the connection is severed cleanly. Otherwise it is broken.
         while True:
             self._listen_error = None
@@ -60,7 +59,7 @@ class BinanceTickProvider(AbstractTickProvider):
                         assert isinstance(event_time, Timestamp)
                         assert isinstance(candle_open_time, Timestamp)
 
-                        self._latest_ticks[data["data"]["s"]] = Tick(
+                        tick = Tick(
                             symbol=data["data"]["s"],
                             event_time=event_time,
                             price=float(k["c"]),
@@ -70,6 +69,7 @@ class BinanceTickProvider(AbstractTickProvider):
                             close=float(k["c"]),
                             timestamp=candle_open_time,
                         )
+                        await queue.put(tick)
 
                     # If the ws loop exits cleanly, raise our custom exception which shows a clean disconnection.
                     raise ConnectionClosedCleanly
@@ -92,11 +92,10 @@ class BinanceTickProvider(AbstractTickProvider):
             raise RuntimeError("ticks() is already running.")
         self._running = True
         self._stop_event.clear()
-        asyncio.create_task(self._listen())
-        update_interval = float(config.get("update_interval"))
+        queue: asyncio.Queue[Tick] = asyncio.Queue()
+        asyncio.create_task(self._listen(queue))
         while not self._stop_event.is_set():
             if self._listen_error is not None:
                 raise self._listen_error
-            for tick in self._latest_ticks.values():
-                yield tick
-            await asyncio.sleep(update_interval)
+            tick = await queue.get()
+            yield tick
