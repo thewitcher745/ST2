@@ -54,6 +54,9 @@ class Position:
         self.setup_targets()
         self.setup_stoplosses()
 
+    def __eq__(self, other) -> bool:
+        return self.id == other.id
+
     def setup_targets(self):
         """
         This method uses an external module to set up the targets.
