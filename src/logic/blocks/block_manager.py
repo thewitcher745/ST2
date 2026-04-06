@@ -21,7 +21,7 @@ class BlockManager:
         This is the iteration logic. It processes the MSB signals and populates the block list.
         """
         for _, row in msbs_df.iterrows():
-            direction: Literal["bullish", "bearish"] = row["direction"].item()
+            direction: Literal["bullish", "bearish"] = row["direction"] # type: ignore[assignment]
             # Slice the leg before the break
             # "before" is the leg that ends at the MSB, "after" is the leg that starts with the MSB
             start_before, end_before = row["leg_before"]
@@ -31,7 +31,7 @@ class BlockManager:
             leg_after_data = Leg(start_after, end_after, klines_data)
 
             # The index and time of the candle which creates the MSB.
-            start_time = klines_data.time[row["formation_index"].item()]
+            start_time = klines_data.time[row["formation_index"]]
             assert isinstance(start_time, Timestamp)
 
             # Initially when the block forms, its invalidation price level should be the price value of the pivot
@@ -47,11 +47,14 @@ class BlockManager:
                 ]
             assert isinstance(invalidation_price, float)
 
+            formation_index = row["formation_index"]
+            assert isinstance(formation_index, int)
+
             ob = self.factory.find_order_block_in_leg(
                 leg_after_data,
                 klines_data,
                 direction,
-                row["formation_index"].item(),
+                formation_index,
                 start_time,
                 invalidation_price,
             )
@@ -65,7 +68,7 @@ class BlockManager:
                     leg_before_data,
                     klines_data,
                     direction,
-                    row["formation_index"].item(),
+                    formation_index,
                     start_time,
                     invalidation_price,
                     type="BB",
@@ -75,7 +78,7 @@ class BlockManager:
                     leg_before_data,
                     klines_data,
                     direction,
-                    row["formation_index"].item(),
+                    formation_index,
                     start_time,
                     invalidation_price,
                     type="MB",
