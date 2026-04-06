@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Literal, Optional
 from numpy import float64, array, int64
 from numpy.typing import NDArray
@@ -41,6 +42,14 @@ class Position:
         self.percent_profit: float = 0
         self.highest_target: int = 0
         self.full_target: bool = False
+        # Indicates which bounce of the base block this position belongs to.
+        self.bounce = 0
+
+        # This ID is only used to compare positions
+        self.id = self.base_block.id + f"_{self.bounce}"
+
+        # Add the position to its base block's positions list
+        self.base_block.positions.append(self)
 
         self.setup_targets()
         self.setup_stoplosses()

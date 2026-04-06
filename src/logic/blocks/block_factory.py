@@ -35,6 +35,7 @@ class BlockFactory:
 
     @staticmethod
     def find_order_block_in_leg(
+        msb_kline_index: int,
         leg: Leg,
         klines_data: KLinesData,
         direction: Literal["bullish", "bearish"],
@@ -50,6 +51,7 @@ class BlockFactory:
         the candle that forms the leg that breaks and forms the MSB line.
 
         Args:
+            msb_kline_index: The KLines index of the MSB that formed the breaker/mitigation block
             leg: A Leg object containing the open and close values in a leg, including its start index.
             direction: The direction of the order block to find, bullish or bearish.
             start_index: The index of the candle that the block is actually found.
@@ -69,6 +71,7 @@ class BlockFactory:
             return Block(
                 base_candle_index,
                 base_candle_time=klines_data.time[base_candle_index],
+                msb_kline_index=msb_kline_index,
                 direction=direction,
                 block_type="OB",
                 low=klines_data.low[base_candle_index],
@@ -83,6 +86,7 @@ class BlockFactory:
 
     @staticmethod
     def find_breaker_mitigation_block_in_leg(
+        msb_kline_index: int,
         leg: Leg,
         klines_data: KLinesData,
         direction: Literal["bullish", "bearish"],
@@ -98,6 +102,7 @@ class BlockFactory:
         last red candle of the leg before the MSB.
 
         Args:
+            msb_kline_index: The KLines index of the MSB that formed the breaker/mitigation block
             leg: A Leg object containing the open and close values in a leg, including its start index.
             direction: The direction of the order block to find, bullish or bearish.
             start_index: The index of the candle that the block is actually found.
@@ -119,6 +124,7 @@ class BlockFactory:
                 return Block(
                     base_candle_index,
                     base_candle_time=klines_data.time[base_candle_index],
+                    msb_kline_index=msb_kline_index,
                     direction=direction,
                     block_type="BB",
                     low=klines_data.low[base_candle_index],
@@ -131,6 +137,7 @@ class BlockFactory:
                 return Block(
                     base_candle_index,
                     base_candle_time=klines_data.time[base_candle_index],
+                    msb_kline_index=msb_kline_index,
                     direction=direction,
                     block_type="MB",
                     low=klines_data.low[base_candle_index],

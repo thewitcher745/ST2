@@ -50,7 +50,11 @@ class BlockManager:
             formation_index = row["formation_index"]
             assert isinstance(formation_index, int)
 
+            msb_kline_index = row["kline_index"]
+            assert isinstance(msb_kline_index, int)
+
             ob = self.factory.find_order_block_in_leg(
+                msb_kline_index,
                 leg_after_data,
                 klines_data,
                 direction,
@@ -65,6 +69,7 @@ class BlockManager:
             mb = None
             if msb_next_pivot_structure == "LL" or msb_next_pivot_structure == "HH":
                 bb = self.factory.find_breaker_mitigation_block_in_leg(
+                    msb_kline_index,
                     leg_before_data,
                     klines_data,
                     direction,
@@ -75,6 +80,7 @@ class BlockManager:
                 )
             else:
                 mb = self.factory.find_breaker_mitigation_block_in_leg(
+                    msb_kline_index,
                     leg_before_data,
                     klines_data,
                     direction,

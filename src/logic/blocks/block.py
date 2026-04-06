@@ -1,8 +1,12 @@
+from __future__ import annotations
 from abc import ABC
-from typing import Any, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 from pandas import Timestamp
 from numpy.typing import NDArray
 from numpy import where
+
+if TYPE_CHECKING:
+    from ..position.position import Position
 
 
 class Block(ABC):
@@ -14,6 +18,7 @@ class Block(ABC):
         self,
         base_candle_index: int,
         base_candle_time: Timestamp,
+        msb_kline_index: int,
         direction: Literal["bullish", "bearish"],
         block_type: Literal["BB", "MB", "OB"],
         low: float,
@@ -24,6 +29,7 @@ class Block(ABC):
     ):
         self.base_candle_index: int = base_candle_index
         self.base_candle_time: Timestamp = base_candle_time
+        self.msb_kline_index: int = msb_kline_index
         self.direction: Literal["bullish", "bearish"] = (
             direction  # 'bullish' or 'bearish'
         )
@@ -37,6 +43,9 @@ class Block(ABC):
         self.end_time: Optional[Timestamp] = None
         self.end_index: Optional[int] = None
         self.invalidation_price: float = invalidation_price
+
+        # The positions associated with (derived from) the block
+        self.positions: list[Position] = []
 
         self.id = f"{'Bu' if self.direction == 'bullish' else 'Be'}_{self.block_type}_{base_candle_time.strftime('%Y-%m-%dT%H:%M:%S')}"
 
