@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from binance import BinanceAPIException
+from binance import BinanceAPIException, HistoricalKlinesType
 from requests.exceptions import ConnectionError, ProxyError
 from binance.client import Client
 from pandas import DataFrame, to_datetime
@@ -47,13 +47,15 @@ class BinanceDataProvider(DataProvider):
                     interval=interval,
                     start_str=datetime.fromtimestamp(start_time / 1000).isoformat(),
                     end_str=datetime.fromtimestamp(end_time / 1000).isoformat(),
+                    klines_type=HistoricalKlinesType.FUTURES,
                 )
 
                 # Raise an exception if no data is returned
                 if raw_data is None or len(raw_data) == 0:
                     raise ValueError("No data returned from Binance")
-
-                df = DataFrame(raw_data).iloc[:, :5]  # Take first 5 columns
+                # Take first 5 columns, and up to the second to last candle
+                # The very last candle in the Binance response is the currently open candle.
+                df = DataFrame(raw_data).iloc[:-1, :5]
 
                 # Sanitize and name the dataframe columns
                 cols = ["time", "open", "high", "low", "close"]
