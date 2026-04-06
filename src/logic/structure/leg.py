@@ -4,7 +4,7 @@ This module contains a small dataclass containing the data for a single leg.
 
 from dataclasses import dataclass
 
-from ...data_provider import KLinesData
+from src.data_provider import KLinesData
 
 
 @dataclass

@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from ...data_provider import KLinesData
+from src.data_provider import KLinesData
 from .position import Position
 from ..blocks.block import Block
 from ..backtest import PositionSimulator

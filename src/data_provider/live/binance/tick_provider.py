@@ -6,7 +6,7 @@ import json
 
 from ..abstract_tick_provider import AbstractTickProvider
 from ..tick import Tick
-from ....config import Config
+from src.config import Config
 
 config = Config()
 

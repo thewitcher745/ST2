@@ -1,7 +1,7 @@
 from typing import Literal
 from pandas import DataFrame, Timestamp
 
-from ...data_provider import KLinesData
+from src.data_provider import KLinesData
 from .block import Block
 from .block_factory import BlockFactory
 from ..structure.leg import Leg
@@ -21,7 +21,7 @@ class BlockManager:
         This is the iteration logic. It processes the MSB signals and populates the block list.
         """
         for _, row in msbs_df.iterrows():
-            direction: Literal["bullish", "bearish"] = row["direction"] # type: ignore[assignment]
+            direction: Literal["bullish", "bearish"] = row["direction"]  # type: ignore[assignment]
             # Slice the leg before the break
             # "before" is the leg that ends at the MSB, "after" is the leg that starts with the MSB
             start_before, end_before = row["leg_before"]

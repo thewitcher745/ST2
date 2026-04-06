@@ -11,15 +11,14 @@ from pandas import Timestamp
 
 from ..tick import Tick
 from ..abstract_tick_provider import AbstractTickProvider
-from ...klines_data import KLinesData
-from ....config import Config
+from src.data_provider import KLinesData
+from src.config import Config
 
 config = Config()
 
 
 class SimulatedTickProvider(AbstractTickProvider):
     def __init__(self, klines_data: dict[str, KLinesData]):
-        
         """
         Set up the TickProvider which would calculate the ticks.
 

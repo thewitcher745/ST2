@@ -5,7 +5,7 @@ from binance.client import Client
 from pandas import DataFrame, to_datetime
 
 from .base import DataProvider
-from ...config import Config
+from src.config import Config
 
 config = Config()
 

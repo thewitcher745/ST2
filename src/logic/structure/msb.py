@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 from pandas import DataFrame
 from numpy import array
 
-from ...config import Config
+from src.config import Config
 
 config = Config()
 

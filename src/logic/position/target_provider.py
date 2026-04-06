@@ -5,7 +5,7 @@ This module will contain small factories which return a list of targets using a 
 from numpy import float64, array
 from numpy.typing import NDArray
 
-from ...config import Config
+from src.config import Config
 
 config = Config()
 

@@ -6,7 +6,7 @@ from pandas import Timestamp
 from .stoploss_provider import StoplossProvider
 from .target_provider import TargetProvider
 from ..blocks.block import Block
-from ...config import Config
+from src.config import Config
 
 config = Config()
 
