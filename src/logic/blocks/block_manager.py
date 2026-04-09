@@ -26,7 +26,12 @@ class BlockManager:
         self.all_blocks = {"bullish": [], "bearish": []}
         self.active_blocks = {"bullish": [], "bearish": []}
 
-    def add_blocks(
+    @staticmethod
+    def combine(blocks_dict: dict[str, list[Block]]) -> list[Block]:
+        """Takes a long/hort separated dict of blocks and returns a combined dict."""
+        return [block for block in blocks_dict["long"] + blocks_dict["short"]]
+
+    def update_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData
     ) -> None:
         """

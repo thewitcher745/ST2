@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from numpy import where
 
 if TYPE_CHECKING:
-    from ..position.position import Position
+    from src.logic import Position
 
 
 class Block(ABC):
