@@ -36,7 +36,7 @@ class Config:
 
         return output
 
-    def get(self, param_label: str):
+    def get(self, param_label: str) -> str:
         try:
             return getattr(self, param_label)
         except AttributeError:

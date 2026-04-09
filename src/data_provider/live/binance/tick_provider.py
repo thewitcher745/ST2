@@ -81,11 +81,11 @@ class BinanceTickProvider(AbstractTickProvider):
             # If number of retries has exceeded max, break and raise an error.
             except Exception as e:
                 self._listen_error = e
-                if self._times_retried > config.get("ws_error_max_retries"):
+                if self._times_retried > int(config.get("ws_error_max_retries")):
                     break
 
                 self._times_retried += 1
-                await asyncio.sleep(config.get("ws_error_retry_interval"))
+                await asyncio.sleep(float(config.get("ws_error_retry_interval")))
 
     async def ticks(self) -> AsyncGenerator[Tick, None]:
         if self._running:
