@@ -13,7 +13,10 @@ config = Config()
 
 class StructureCalculator:
     def __init__(self):
-        pass
+        self._last_calc_time: datetime | None = None
+
+    def _update_last_calc_time(self):
+        self._last_calc_time = datetime.now()
 
     def _recalculate(
         self,
@@ -27,6 +30,12 @@ class StructureCalculator:
         Recalculates the logic of the strategy with a given symbol. The data is fetched from the
         self.klines_data for that symbol
         """
+        now = datetime.now()
+        if self._last_calc_time is not None and (
+            now - self._last_calc_time
+        ).seconds < int(config.get("update_interval")):
+            return
+
         zigzag_df = zigzag.calculate(klines_data)
 
         msbs_df = msb_identifier.find_all_matches(
@@ -39,3 +48,4 @@ class StructureCalculator:
         block_manager.add_blocks(msbs_df, zigzag_df, klines_data)
         block_manager.update_block_end_times(klines_data)
 
+        self._update_last_calc_time()
