@@ -32,17 +32,25 @@ class ForwardTest:
             s: PositionManager() for s in symbols
         }
 
+    def _remove_symbol(self, symbol: str):
+        print(
+            f"[cleanup] Removing {symbol} from forward test due to consecutive errors"
+        )
+
+        self._symbols.remove(symbol)
+        self.tick_provider.set_symbols(self._symbols)
+        del self.sync_manager.klines_data[symbol]
+        del self.block_managers[symbol]
+        del self.position_managers[symbol]
+
     def _load_klines(self):
         """Loads Binance data, removes faulty symbols."""
         faulty_symbols = self.sync_manager.load_klines()
         for symbol in faulty_symbols:
-            self._symbols.remove(symbol)
-            self.tick_provider.set_symbols(self._symbols)
-            del self.block_managers[symbol]
-            del self.position_managers[symbol]
+            self._remove_symbol(symbol)
 
         if not self._symbols:
-            raise RuntimeError("All symbols failed during startup.")
+            raise RuntimeError("All symbols failed.")
 
         if faulty_symbols:
             print(f"[startup] Removed faulty symbols: {faulty_symbols}")
@@ -85,6 +93,11 @@ class ForwardTest:
         while True:
             tick = await self._get_latest_tick(queue)
             self.sync_manager.process_tick(tick)
+
+            # If the processing fails, remove the symbol. This generally means a resync failed.
+            if not self.sync_manager.process_tick(tick):
+                self._remove_symbol(tick.symbol)
+                continue
 
             self._calc_for_symbol(tick.symbol)
 

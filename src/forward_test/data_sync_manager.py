@@ -87,13 +87,23 @@ class DataSyncManager:
             f"[resync] Fetched {len(incoming_klines_data)} candles and resynced data."
         )
 
-    def process_tick(self, tick: Tick):
+    def process_tick(self, tick: Tick) -> bool:
         """
         Processes the tick, resyncs the data if necessary or updates the latest tick.
+        Returns True if the processing is successful, False if not.
         """
         # If we are still in the same candle, update it
         if tick.timestamp == self.klines_data[tick.symbol].live_candle_time:
             self.klines_data[tick.symbol].update(tick)
+            return True
         # Otherwise, resync the last few candles with the server
         else:
-            self._resync_data(tick)
+            try:
+                self._resync_data(tick)
+            except BinanceDataFetchError as e:
+                print(f"[resync] Failed to resync {tick.symbol}: {e}")
+                return False
+            except Exception as e:
+                print(f"[fatal] Unexpected error for {tick.symbol}: {e}")
+                return False
+            return True
