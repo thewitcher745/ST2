@@ -60,7 +60,7 @@ class BinanceDataProvider(DataProvider):
                     interval=interval,
                     start_str=start_str,
                     klines_type=HistoricalKlinesType.FUTURES,
-                    limit=None if limit is None else limit + 1,
+                    limit=limit,
                 )
 
                 # Raise an exception if no data is returned
