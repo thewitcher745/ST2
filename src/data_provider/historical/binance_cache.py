@@ -28,7 +28,16 @@ class BinanceDataProvider(DataProvider):
         symbol: str,
         interval: str,
         time_delta: timedelta = timedelta(days=10),
+        limit: int | None = None,
+        most_recent: bool = False,
+        include_live_candle: bool = False,
     ) -> DataFrame:
+        """
+        Fetches historical KLines.
+
+        most_recent: If set, the start_time argument isn't passed to the fetching method, resulting in returning "limit" recent KLines
+        include_live_candle: If set to True, will include the latest (live open) candle in the returned DataFrame.
+        """
         max_retries = int(config.get("binance_cache_max_retries"))
         retry_interval = float(config.get("binance_cache_retry_interval"))
 
@@ -39,23 +48,31 @@ class BinanceDataProvider(DataProvider):
                 # historical klines request
                 now = datetime.now(timezone.utc)
                 start_time = (now - time_delta).timestamp() * 1000
-                end_time = now.timestamp() * 1000
-
                 # Fetch historical klines from Binance
+                # If most_recent is true, the start time is ignored.
+                start_str = (
+                    datetime.fromtimestamp(start_time / 1000).isoformat()
+                    if not most_recent
+                    else None
+                )
                 raw_data = self.client.get_historical_klines(
                     symbol=symbol,
                     interval=interval,
-                    start_str=datetime.fromtimestamp(start_time / 1000).isoformat(),
-                    end_str=datetime.fromtimestamp(end_time / 1000).isoformat(),
+                    start_str=start_str,
                     klines_type=HistoricalKlinesType.FUTURES,
+                    limit=None if limit is None else limit + 1,
                 )
 
                 # Raise an exception if no data is returned
                 if raw_data is None or len(raw_data) == 0:
                     raise ValueError("No data returned from Binance")
-                # Take first 5 columns, and up to the second to last candle
-                # The very last candle in the Binance response is the currently open candle.
-                df = DataFrame(raw_data).iloc[:-1, :5]
+                # Take first 5 columns.
+                # The very last candle in the Binance response is the currently open candle. Included if the
+                # related boolean is passed as an argument, typically in a forward test environment.
+                if include_live_candle:
+                    df = DataFrame(raw_data).iloc[:, :5]
+                else:
+                    df = DataFrame(raw_data).iloc[:-1, :5]
 
                 # Sanitize and name the dataframe columns
                 cols = ["time", "open", "high", "low", "close"]

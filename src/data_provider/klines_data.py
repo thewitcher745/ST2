@@ -1,6 +1,5 @@
 """
-This module contains a singleton definition to avoid multiple injections of dependencies.
-It also defines the klines_df dataframe column as numpy arrays for fast access.
+This module defines the klines_df dataframe column as numpy arrays for fast access.
 """
 
 from numpy import array, float64
