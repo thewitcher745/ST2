@@ -14,7 +14,7 @@ config = Config()
 
 class BinanceDataProvider(DataProvider):
     def __init__(self, api_key: str = "", api_secret: str = ""):
-        proxy = config.get("proxy_server")
+        proxy = config.get_optional("proxy_server")
         max_retries = int(config.get("binance_cache_max_retries"))
         retry_interval = float(config.get("binance_cache_retry_interval"))
 

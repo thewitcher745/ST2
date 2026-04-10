@@ -14,12 +14,14 @@ class TelegramClient:
     def __init__(self):
         self._token: str = config.get("TG_BOT_AUTH_TOKEN")
         self._channel_id: str = self._get_channel_id()
-        self._async_client = httpx.AsyncClient(proxy=config.get("proxy_server"))
+        self._async_client = httpx.AsyncClient(
+            proxy=config.get_optional("proxy_server")
+        )
         self._send_message_lock = asyncio.Lock()
         self._send_message_delay = float(config.get("telegram_api_send_message_delay"))
 
     def _get_channel_id(self):
-        if bool(config.get("dev")):
+        if bool(config.get_optional("dev")):
             return config.get("TG_DEV_CHANNEL_ID")
         else:
             return config.get("TG_PROD_CHANNEL_ID")

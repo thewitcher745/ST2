@@ -48,7 +48,7 @@ class BinanceTickProvider(AbstractTickProvider):
         while True:
             self._listen_error = None
             try:
-                async with connect(url, proxy=config.get("proxy_server")) as ws:
+                async with connect(url, proxy=config.get_optional("proxy_server")) as ws:
                     self._times_retried = 0
                     async for message in ws:
                         data = json.loads(message)

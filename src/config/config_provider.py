@@ -46,3 +46,9 @@ class Config:
             return getattr(self, param_label)
         except AttributeError:
             raise
+
+    def get_optional(self, param_label: str) -> str | None:
+        try:
+            return getattr(self, param_label)
+        except AttributeError:
+            return None
