@@ -57,7 +57,9 @@ class SignalManager:
             message_text = MessageTemplate.format_signal(position_to_send, self._symbol)
             message_id = await self._telegram_client.send_message(message_text)
 
-            position_to_send.telegram_message_id = message_id
+            assert isinstance(message_id, int)
+            # The +1 is because Cornix re-sends the message with an inline keyboard attached.
+            position_to_send.telegram_message_id = message_id + 1
             position_to_send.signal_sent = True
 
         self._current_blocks = updated_blocks_set
