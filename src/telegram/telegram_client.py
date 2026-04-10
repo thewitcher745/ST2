@@ -15,6 +15,8 @@ class TelegramClient:
         self._token: str = config.get("TG_BOT_AUTH_TOKEN")
         self._channel_id: str = self._get_channel_id()
         self._async_client = httpx.AsyncClient(proxy=config.get("proxy_server"))
+        self._send_message_lock = asyncio.Lock()
+        self._send_message_delay = float(config.get("telegram_api_send_message_delay"))
 
     def _get_channel_id(self):
         if bool(config.get("dev")):
@@ -25,7 +27,10 @@ class TelegramClient:
     async def send_message(
         self, message: str, reply_id: int | None = None
     ) -> int | None:
-        """Sends a message to the Telegram channel and returns its ID."""
+        """
+        Sends a message to the Telegram channel and returns its ID. Enforces a timeout between messages
+        synced across all tasks.
+        """
         payload = {
             "chat_id": self._channel_id,
             "text": message,
@@ -36,50 +41,57 @@ class TelegramClient:
         max_retries = int(config.get("telegram_api_max_retries"))
         base_retry_interval = float(config.get("telegram_api_base_retry_interval"))
 
-        for attempt in range(1, max_retries + 1):
-            try:
-                response = await self._async_client.post(
-                    f"{url}bot{self._token}/sendMessage",
-                    json=payload,
-                )
+        # Queue is shared between tasks
+        async with self._send_message_lock:
+            for attempt in range(1, max_retries + 1):
+                try:
+                    response = await self._async_client.post(
+                        f"{url}bot{self._token}/sendMessage",
+                        json=payload,
+                    )
 
-                response.raise_for_status()
-                data = response.json()
+                    response.raise_for_status()
+                    data = response.json()
 
-                return int(data["result"]["message_id"])
+                    # Delay between message sends
+                    await asyncio.sleep(self._send_message_delay)
 
-            except KeyError as e:
-                print(
-                    f"[telegram] Message send failed. Probably an incorrect config: {e}"
-                )
-                raise
-            except (
-                httpx.ReadTimeout,
-                httpx.ConnectError,
-                httpx.RemoteProtocolError,
-            ) as e:
-                # Retry only network-related errors
-                if attempt == max_retries:
-                    print(f"[telegram] Failed after {max_retries} attempts: {e}")
+                    return int(data["result"]["message_id"])
+
+                except KeyError as e:
+                    print(
+                        f"[telegram] Message send failed. Probably an incorrect config: {e}"
+                    )
+                    raise
+                except (
+                    httpx.ReadTimeout,
+                    httpx.ConnectError,
+                    httpx.RemoteProtocolError,
+                ) as e:
+                    # Retry only network-related errors
+                    if attempt == max_retries:
+                        print(f"[telegram] Failed after {max_retries} attempts: {e}")
+                        raise
+
+                    delay = base_retry_interval * (
+                        2 ** (attempt - 1)
+                    )  # exponential backoff
+                    print(
+                        f"[telegram] Retry {attempt}/{max_retries} in {delay:.1f}s: {e}"
+                    )
+                    await asyncio.sleep(delay)
+
+                except httpx.HTTPStatusError as e:
+                    # Don't retry most HTTP errors (e.g., 400, 401)
+                    print(
+                        f"[telegram] HTTP error: {e.response.status_code} - {e.response.text}"
+                    )
                     raise
 
-                delay = base_retry_interval * (
-                    2 ** (attempt - 1)
-                )  # exponential backoff
-                print(f"[telegram] Retry {attempt}/{max_retries} in {delay:.1f}s: {e}")
-                await asyncio.sleep(delay)
-
-            except httpx.HTTPStatusError as e:
-                # Don't retry most HTTP errors (e.g., 400, 401)
-                print(
-                    f"[telegram] HTTP error: {e.response.status_code} - {e.response.text}"
-                )
-                raise
-
-            except Exception as e:
-                # Unknown errors → fail fast
-                print(f"[telegram] Unexpected error: {e}")
-                raise
+                except Exception as e:
+                    # Unknown errors → fail fast
+                    print(f"[telegram] Unexpected error: {e}")
+                    raise
 
     async def close(self):
         await self._async_client.aclose()
