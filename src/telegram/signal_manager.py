@@ -1,9 +1,13 @@
+from pathlib import Path
 from typing import cast
+import pickle
 
 from src.logic import LivePosition
 from src.logic.blocks.block import Block
 from src.telegram import TelegramClient
 from .message_template import MessageTemplate
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class SignalManager:
@@ -14,6 +18,29 @@ class SignalManager:
             True  # Set to true since the first set of signals haven't been sent yet.
         )
         self._symbol = symbol
+        self._state_filepath = BASE_DIR / "data" / "state" / f"{symbol}.pickle"
+
+        self._load_state()
+
+    def _save_state(self):
+        """Save the current state to disk."""
+        state = {
+            "current_blocks": self._current_blocks,
+            "initial_run": self._initial_run,
+        }
+        with open(self._state_filepath, "wb") as f:
+            pickle.dump(state, f)
+
+    def _load_state(self):
+        """Load state from disk if it exists."""
+        try:
+            with open(self._state_filepath, "rb") as f:
+                state = pickle.load(f)
+                self._current_blocks = state["current_blocks"]
+                self._initial_run = state["initial_run"]
+            print(f"[state] Loaded state for {self._symbol}")
+        except FileNotFoundError:
+            print(f"[state] No saved state found for {self._symbol}, starting fresh")
 
     async def process_signals(self, updated_blocks: list[Block]):
         """
@@ -35,6 +62,9 @@ class SignalManager:
         new_blocks = updated_blocks_set - old_blocks_set
         outdated_blocks = old_blocks_set - updated_blocks_set
 
+        # Only save the state if anything changes.
+        _save_state_required = False
+
         # Cancel the outdated blocks
         for block in outdated_blocks:
             position_to_cancel = cast(LivePosition, block.positions[0])
@@ -49,6 +79,7 @@ class SignalManager:
                 )
 
                 position_to_cancel.signal_canceled = True
+                _save_state_required = True
 
         # Send the new blocks
         for block in new_blocks:
@@ -61,5 +92,9 @@ class SignalManager:
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.
             position_to_send.telegram_message_id = message_id + 1
             position_to_send.signal_sent = True
+            _save_state_required = True
 
         self._current_blocks = updated_blocks_set
+
+        if _save_state_required:
+            self._save_state()
