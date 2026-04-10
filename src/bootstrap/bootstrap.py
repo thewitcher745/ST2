@@ -14,19 +14,21 @@ STRUCTURE = {
 
 def ensure_directory(path: Path):
     if not path.exists():
+        print(f"[init] Created directory {path}")
         path.mkdir(parents=True, exist_ok=True)
 
 
 def ensure_file_from_template(target: Path, template: Path):
     if not target.exists():
+        print(
+            f"[init] Created file {target} from template. Remember to fill the required data in."
+        )
         shutil.copy(template, target)
 
 
 def run_bootstrap():
     for dir_path in STRUCTURE["directories"]:
-        print(f"[init] Created directory {dir_path}")
         ensure_directory(PROJECT_ROOT / dir_path)
 
     for target, template in STRUCTURE["files"]:
-        print(f"[init] Created file {target} from template. Remember to fill the required data in.")
         ensure_file_from_template(PROJECT_ROOT / target, TEMPLATES_DIR / template)
