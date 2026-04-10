@@ -12,7 +12,7 @@ def configure_logging():
     config = Config()
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    dev = config.get_optional("dev")
+    dev = bool(config.get_optional("dev"))
 
     level = logging.INFO if not dev else logging.DEBUG
 

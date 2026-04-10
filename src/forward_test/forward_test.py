@@ -46,7 +46,6 @@ class ForwardTest:
 
         self._symbols.remove(symbol)
         self.tick_provider.set_symbols(self._symbols)
-        del self.sync_manager.klines_data[symbol]
         del self.block_managers[symbol]
         del self.position_managers[symbol]
 
