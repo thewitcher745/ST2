@@ -21,10 +21,10 @@ class TelegramClient:
         self._send_message_delay = float(config.get("telegram_api_send_message_delay"))
 
     def _get_channel_id(self):
-        if bool(config.get_optional("dev")):
-            return config.get("TG_DEV_CHANNEL_ID")
-        else:
+        if not bool(config.get_optional("dev")):
             return config.get("TG_PROD_CHANNEL_ID")
+        else:
+            return config.get("TG_DEV_CHANNEL_ID")
 
     async def send_message(
         self, message: str, reply_id: int | None = None
