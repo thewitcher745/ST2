@@ -33,13 +33,13 @@ class DataSyncManager:
                 )
                 self.klines_data[symbol] = LiveKLinesData(klines_df)
                 logger.debug(
-                    f"[startup] Fetched {self.klines_data[symbol].length} KLines for symbol {symbol}"
+                    f"Fetched {self.klines_data[symbol].length} KLines for symbol {symbol}"
                 )
             except BinanceDataFetchError as e:
-                logger.warning(f"[startup] Giving up on {symbol} after retries: {e}")
+                logger.warning(f"Giving up on {symbol} after retries: {e}")
                 faulty_symbols.append(symbol)
             except Exception as e:
-                logger.warning(f"[startup] Failed to initialize {symbol}: {e}")
+                logger.warning(f"Failed to initialize {symbol}: {e}")
                 faulty_symbols.append(symbol)
 
         return faulty_symbols

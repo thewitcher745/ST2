@@ -43,9 +43,7 @@ class SignalManager:
                 self._initial_run = state["initial_run"]
             logger.info(f"Loaded state for {self._symbol}")
         except FileNotFoundError:
-            logger.info(
-                f"No saved state found for {self._symbol}, starting fresh"
-            )
+            logger.info(f"No saved state found for {self._symbol}, starting fresh")
 
     async def process_signals(self, updated_blocks: list[Block]):
         """
@@ -95,7 +93,7 @@ class SignalManager:
             message_text = MessageTemplate.format_signal(position_to_send, self._symbol)
             message_id = await self._telegram_client.send_message(message_text)
 
-            logger.info(f"Canceled position with ID {position_to_send.id}")
+            logger.info(f"Sent position with ID {position_to_send.id}")
 
             assert isinstance(message_id, int)
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.

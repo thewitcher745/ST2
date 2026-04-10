@@ -60,8 +60,8 @@ class ForwardTest:
             raise RuntimeError("All symbols failed.")
 
         if faulty_symbols:
-            logger.warning(f"[startup] Removed faulty symbols: {faulty_symbols}")
-            logger.warning(f"[startup] Continuing with: {self._symbols}")
+            logger.warning(f"Removed faulty symbols: {faulty_symbols}")
+            logger.warning(f"Continuing with: {self._symbols}")
 
     def _calc_for_symbol(self, symbol: str):
         """Recalculates the structure for the given symbol."""
