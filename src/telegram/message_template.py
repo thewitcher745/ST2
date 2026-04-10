@@ -36,6 +36,7 @@ class MessageTemplate:
         trailing_setup_string = MessageTemplate._create_trailing_setup_string()
 
         message = f"""⚡⚡ #{symbol_text} ⚡⚡
+Exchanges: ByBit USDT, Bitget Futures, BingX Futures, Binance Futures
 Signal Type: Regular ({position.type})
 Leverage: {leverage_type} ({int(leverage)}.0X)
 Entry Targets:

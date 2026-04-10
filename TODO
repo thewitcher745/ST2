@@ -1,2 +1,3 @@
 - Improve opposite direction intra-candle accuracy edge cases
 - Add logging
+- Make message template less hardcoded

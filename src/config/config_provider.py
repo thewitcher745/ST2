@@ -45,4 +45,4 @@ class Config:
         try:
             return getattr(self, param_label)
         except AttributeError:
-            raise ValueError
+            raise
