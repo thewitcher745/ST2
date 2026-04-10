@@ -15,13 +15,38 @@ config = Config()
 class BinanceDataProvider(DataProvider):
     def __init__(self, api_key: str = "", api_secret: str = ""):
         proxy = config.get("proxy_server")
-        self.client = Client(
-            api_key,
-            api_secret,
-            requests_params={"proxies": {"http": proxy, "https": proxy}}
-            if proxy
-            else {},
-        )
+        max_retries = int(config.get("binance_cache_max_retries"))
+        retry_interval = float(config.get("binance_cache_retry_interval"))
+
+        last_exception = None
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.client = Client(
+                    api_key,
+                    api_secret,
+                    requests_params={"proxies": {"http": proxy, "https": proxy}}
+                    if proxy
+                    else {},
+                )
+                # Success, exit retry loop
+                return
+
+            except Exception as e:
+                last_exception = e
+                print(
+                    f"[BinanceDataProvider] Attempt {attempt}/{max_retries} failed "
+                    f"to initialize Binance client: {e}. "
+                    f"Retrying in {retry_interval}s..."
+                )
+
+                if attempt < max_retries:
+                    time.sleep(retry_interval)
+
+        # If we get here, all retries failed
+        raise RuntimeError(
+            f"[BinanceDataProvider] Failed to initialize Binance client after {max_retries} attempts"
+        ) from last_exception
 
     def get_latest_klines(
         self,
