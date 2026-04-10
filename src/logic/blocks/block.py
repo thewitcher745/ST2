@@ -5,8 +5,10 @@ from pandas import Timestamp
 from numpy.typing import NDArray
 from numpy import where
 
+
 if TYPE_CHECKING:
     from src.logic import Position
+    from src.logic import LivePosition
 
 
 class Block(ABC):
@@ -45,12 +47,15 @@ class Block(ABC):
         self.invalidation_price: float = invalidation_price
 
         # The positions associated with (derived from) the block
-        self.positions: list[Position] = []
+        self.positions: list[Position | LivePosition] = []
 
         self.id = f"{'Bu' if self.direction == 'bullish' else 'Be'}_{self.block_type}_{base_candle_time.strftime('%Y-%m-%dT%H:%M:%S')}"
 
     def __eq__(self, other) -> bool:
         return self.id == other.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
     def check_end_candle(self, klines_df_close_array: NDArray):
         """

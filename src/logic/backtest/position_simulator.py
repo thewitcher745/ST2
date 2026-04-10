@@ -1,11 +1,14 @@
-from typing import Literal
+from __future__ import annotations
+from typing import Literal, TYPE_CHECKING
 from numpy import where, array
 from numpy.typing import NDArray
 
-from src.logic import Position
 from src.data_provider import KLinesData
 from src.config import Config
 from ..position.utils import change_directions_dict
+
+if TYPE_CHECKING:
+    from src.logic import Position
 
 config = Config()
 

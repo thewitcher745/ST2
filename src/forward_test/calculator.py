@@ -45,7 +45,11 @@ class StructureCalculator:
             zigzag_df["pivot_formation_index"].tolist(),
         )
 
-        block_manager.add_blocks(msbs_df, zigzag_df, klines_data)
+        block_manager.update_blocks(msbs_df, zigzag_df, klines_data)
         block_manager.update_block_end_times(klines_data)
+
+        position_manager.update_positions(
+            blocks=block_manager.all_active_blocks, active=True, live=True
+        )
 
         self._update_last_calc_time()
