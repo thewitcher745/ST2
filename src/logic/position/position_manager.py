@@ -31,11 +31,13 @@ class PositionManager:
         else:
             self.all_positions = all_positions
 
-    @staticmethod
-    def combine(positions_dict: dict[str, list[Position]]) -> list[Position]:
+    @property
+    def all_active_positions(self) -> list[Position]:
         """Takes a long/hort separated dict of positions and returns a combined dict."""
         return [
-            position for position in positions_dict["long"] + positions_dict["short"]
+            position
+            for position in self.active_positions["long"]
+            + self.active_positions["short"]
         ]
 
     def simulate_all_positions(self, klines_data: KLinesData):
