@@ -15,15 +15,20 @@ class Config:
         config_env_path: str = ".env.config",
         misc_env_path: str = ".env.misc",
         misc_local_env_path: str = ".env.misc.local",
+        secret_env_path: str = ".env.secret",
     ):
         config_values = dotenv_values(config_env_path)
         misc_values = dotenv_values(misc_env_path)
         misc_local_values = dotenv_values(misc_local_env_path)
+        secret_values = dotenv_values(secret_env_path)
 
         for key, value in config_values.items():
             self.__setattr__(key, value)
 
         for key, value in misc_values.items():
+            self.__setattr__(key, value)
+
+        for key, value in secret_values.items():
             self.__setattr__(key, value)
 
         for key, value in misc_local_values.items():

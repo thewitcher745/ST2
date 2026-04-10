@@ -1,9 +1,10 @@
 charting/
-data/
+data/klines
 test.py
 **/__pycache__/
 chart.html
 **/**profile**
-**/**csv**
+/*.csv
 /*test*.py
 .env.misc.local
+.env.secret

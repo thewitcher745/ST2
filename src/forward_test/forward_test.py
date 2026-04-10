@@ -1,5 +1,7 @@
 import asyncio
 
+from src.telegram.signal_manager import SignalManager
+from src.telegram import TelegramClient
 from .calculator import StructureCalculator
 from .data_sync_manager import DataSyncManager
 from src.data_provider import (
@@ -17,19 +19,24 @@ class ForwardTest:
     def __init__(self, symbols: list[str]):
         self._symbols = symbols
 
-        # Stateless — shared across all symbols
+        # Shared across all symbols
         self.zigzag = Zigzag()
         self.msb_identifier = MSBIdentifier()
+        self.telegram_client = TelegramClient()
         self.tick_provider = BinanceTickProvider(symbols=symbols)
         self.sync_manager = DataSyncManager(symbols, data_provider=BinanceDataProvider)
         self.structure_calculator = StructureCalculator()
 
-        # Stateful — one instance per symbol
+        # One instance per symbol
         self.block_managers: dict[str, BlockManager] = {
             s: BlockManager() for s in symbols
         }
         self.position_managers: dict[str, PositionManager] = {
             s: PositionManager() for s in symbols
+        }
+        self.signal_managers: dict[str, SignalManager] = {
+            s: SignalManager(symbol=s, telegram_client=self.telegram_client)
+            for s in symbols
         }
 
     def _remove_symbol(self, symbol: str):
@@ -57,6 +64,7 @@ class ForwardTest:
             print(f"[startup] Continuing with: {self._symbols}")
 
     def _calc_for_symbol(self, symbol: str):
+        """Recalculates the structure for the given symbol."""
         self.structure_calculator._recalculate(
             self.sync_manager.klines_data[symbol],
             self.zigzag,
@@ -65,6 +73,11 @@ class ForwardTest:
             self.msb_identifier,
         )
 
+    async def _process_signals(self, symbol: str):
+        """Finds which signals need cancelling and which ones need posting for a given signal."""
+        updated_blocks = self.block_managers[symbol].all_active_blocks
+        await self.signal_managers[symbol].process_signals(updated_blocks)
+
     async def run(self) -> None:
         """
         Initiates and runs the forward test loop.
@@ -72,6 +85,8 @@ class ForwardTest:
         self._load_klines()
         for symbol in self._symbols:
             self._calc_for_symbol(symbol)
+            await self._process_signals(symbol)
+
         await self._start_live_loop()
 
     async def _start_live_loop(self) -> None:
@@ -92,14 +107,15 @@ class ForwardTest:
     async def _consume_ticks(self, queue: asyncio.Queue[Tick]) -> None:
         while True:
             tick = await self._get_latest_tick(queue)
-            self.sync_manager.process_tick(tick)
-
+            if isinstance(tick, Exception):
+                raise tick
             # If the processing fails, remove the symbol. This generally means a resync failed.
             if not self.sync_manager.process_tick(tick):
                 self._remove_symbol(tick.symbol)
                 continue
 
             self._calc_for_symbol(tick.symbol)
+            await self._process_signals(tick.symbol)
 
     async def _get_latest_tick(self, queue: asyncio.Queue[Tick]) -> Tick:
         tick = await queue.get()
