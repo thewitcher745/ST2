@@ -81,7 +81,9 @@ class SignalManager:
                     message_text, reply_id=reply_id
                 )
 
-                logger.info(f"Canceled position with ID {position_to_cancel.id}")
+                logger.info(
+                    f"Canceled position with ID {position_to_cancel.id} for symbol {self._symbol}"
+                )
 
                 position_to_cancel.signal_canceled = True
                 _save_state_required = True
@@ -93,7 +95,9 @@ class SignalManager:
             message_text = MessageTemplate.format_signal(position_to_send, self._symbol)
             message_id = await self._telegram_client.send_message(message_text)
 
-            logger.info(f"Sent position with ID {position_to_send.id}")
+            logger.info(
+                f"Sent position with ID {position_to_send.id} for symbol {self._symbol}"
+            )
 
             assert isinstance(message_id, int)
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.

@@ -32,9 +32,9 @@ class DataSyncManager:
                     include_live_candle=True,
                 )
                 self.klines_data[symbol] = LiveKLinesData(klines_df)
-                logger.debug(
-                    f"Fetched {self.klines_data[symbol].length} KLines for symbol {symbol}"
-                )
+                # logger.debug(
+                #     f"Fetched {self.klines_data[symbol].length} KLines for symbol {symbol}"
+                # )
             except BinanceDataFetchError as e:
                 logger.warning(f"Giving up on {symbol} after retries: {e}")
                 faulty_symbols.append(symbol)
@@ -48,10 +48,10 @@ class DataSyncManager:
         """
         Resyncs the KLines with the server by fetching a number of the most recent candles.
         """
-        logger.debug("------RESYNC------")
-        logger.debug(
-            f"Incoming tick timestamp is {tick.timestamp} (vs. {self.klines_data[tick.symbol].live_candle_time} on local)"
-        )
+        # logger.debug("------RESYNC------")
+        # logger.debug(
+        #     f"Incoming tick timestamp is {tick.timestamp} (vs. {self.klines_data[tick.symbol].live_candle_time} on local)"
+        # )
 
         symbol = tick.symbol
         # 1. Find the amount of time that has passed since the last "closed" candle of the dataset.
@@ -65,7 +65,7 @@ class DataSyncManager:
         # The resync buffer is a safety margin we add to each fetch to mend any possible inconsistency in the data
         resync_buffer = int(config.get("binance_cache_resync_buffer"))
         n_klines = int(time_elapsed / candle_timedelta) + resync_buffer
-        logger.debug(f"{n_klines} candles to fetch.")
+        # logger.debug(f"{n_klines} candles to fetch.")
 
         # 3. Resync the KLinesData using the data just fetched.
         # If the gap is too large, replace everything.
@@ -86,7 +86,7 @@ class DataSyncManager:
                 include_live_candle=True,
             )
             self.klines_data[symbol].replace(incoming_klines_data, partial=True)
-        logger.debug(f"Fetched {len(incoming_klines_data)} candles and resynced data.")
+        # logger.debug(f"Fetched {len(incoming_klines_data)} candles and resynced data.")
 
     def process_tick(self, tick: Tick) -> bool:
         """
