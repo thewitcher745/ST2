@@ -4,11 +4,13 @@ from binance import BinanceAPIException, HistoricalKlinesType
 from requests.exceptions import ConnectionError, ProxyError
 from binance.client import Client
 from pandas import DataFrame, to_datetime
+import logging
 
 from .base import DataProvider
 from src.utils import BinanceDataFetchError
 from src.config import Config
 
+logger = logging.getLogger("[BinanceDataProvider]")
 config = Config()
 
 
@@ -34,8 +36,8 @@ class BinanceDataProvider(DataProvider):
 
             except Exception as e:
                 last_exception = e
-                print(
-                    f"[BinanceDataProvider] Attempt {attempt}/{max_retries} failed "
+                logger.warning(
+                    f"Attempt {attempt}/{max_retries} failed "
                     f"to initialize Binance client: {e}. "
                     f"Retrying in {retry_interval}s..."
                 )
@@ -45,7 +47,7 @@ class BinanceDataProvider(DataProvider):
 
         # If we get here, all retries failed
         raise RuntimeError(
-            f"[BinanceDataProvider] Failed to initialize Binance client after {max_retries} attempts"
+            f"Failed to initialize Binance client after {max_retries} attempts"
         ) from last_exception
 
     def get_latest_klines(
@@ -128,8 +130,8 @@ class BinanceDataProvider(DataProvider):
                     f"Unexpected error in BinanceDataProvider: {e}"
                 )
 
-            print(
-                f"[BinanceDataProvider] Attempt {attempt}/{max_retries} failed for {symbol}: {last_exception}. Retrying in {retry_interval}s..."
+            logger.warning(
+                f"Attempt {attempt}/{max_retries} failed for {symbol}: {last_exception}. Retrying in {retry_interval}s..."
             )
             time.sleep(retry_interval)
 

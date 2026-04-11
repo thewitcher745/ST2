@@ -1,5 +1,8 @@
 from pathlib import Path
 import shutil
+import logging
+
+logger = logging.getLogger("[bootstrap]")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -14,13 +17,13 @@ STRUCTURE = {
 
 def ensure_directory(path: Path):
     if not path.exists():
-        print(f"[init] Created directory {path}")
+        logger.info(f"Created directory {path}")
         path.mkdir(parents=True, exist_ok=True)
 
 
 def ensure_file_from_template(target: Path, template: Path):
     if not target.exists():
-        print(
+        logger.info(
             f"[init] Created file {target} from template. Remember to fill the required data in."
         )
         shutil.copy(template, target)

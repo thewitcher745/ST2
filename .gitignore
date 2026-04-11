@@ -8,3 +8,4 @@ chart.html
 /*test*.py
 .env.misc.local
 .env.secret
+/logs

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from src.telegram.signal_manager import SignalManager
 from src.telegram import TelegramClient
@@ -13,6 +14,7 @@ from src.config import Config
 from src.logic import MSBIdentifier, Zigzag, BlockManager, PositionManager
 
 config = Config()
+logger = logging.getLogger("[ForwardTest]")
 
 
 class ForwardTest:
@@ -40,9 +42,7 @@ class ForwardTest:
         }
 
     def _remove_symbol(self, symbol: str):
-        print(
-            f"[cleanup] Removing {symbol} from forward test due to consecutive errors"
-        )
+        logger.warning(f"Removing {symbol} from forward test due to consecutive errors")
 
         self._symbols.remove(symbol)
         self.tick_provider.set_symbols(self._symbols)
@@ -60,8 +60,8 @@ class ForwardTest:
             raise RuntimeError("All symbols failed.")
 
         if faulty_symbols:
-            print(f"[startup] Removed faulty symbols: {faulty_symbols}")
-            print(f"[startup] Continuing with: {self._symbols}")
+            logger.warning(f"[startup] Removed faulty symbols: {faulty_symbols}")
+            logger.warning(f"[startup] Continuing with: {self._symbols}")
 
     def _calc_for_symbol(self, symbol: str):
         """Recalculates the structure for the given symbol."""

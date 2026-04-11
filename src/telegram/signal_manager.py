@@ -1,11 +1,14 @@
 from pathlib import Path
 from typing import cast
 import pickle
+import logging
 
 from src.logic import LivePosition
 from src.logic.blocks.block import Block
 from src.telegram import TelegramClient
 from .message_template import MessageTemplate
+
+logger = logging.getLogger("[SignalManager]")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -38,9 +41,11 @@ class SignalManager:
                 state = pickle.load(f)
                 self._current_blocks = state["current_blocks"]
                 self._initial_run = state["initial_run"]
-            print(f"[state] Loaded state for {self._symbol}")
+            logger.info(f"Loaded state for {self._symbol}")
         except FileNotFoundError:
-            print(f"[state] No saved state found for {self._symbol}, starting fresh")
+            logger.info(
+                f"No saved state found for {self._symbol}, starting fresh"
+            )
 
     async def process_signals(self, updated_blocks: list[Block]):
         """
@@ -78,6 +83,8 @@ class SignalManager:
                     message_text, reply_id=reply_id
                 )
 
+                logger.info(f"Canceled position with ID {position_to_cancel.id}")
+
                 position_to_cancel.signal_canceled = True
                 _save_state_required = True
 
@@ -87,6 +94,8 @@ class SignalManager:
 
             message_text = MessageTemplate.format_signal(position_to_send, self._symbol)
             message_id = await self._telegram_client.send_message(message_text)
+
+            logger.info(f"Canceled position with ID {position_to_send.id}")
 
             assert isinstance(message_id, int)
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.

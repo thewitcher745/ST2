@@ -1,6 +1,8 @@
 from csv import reader
 from pathlib import Path
+import logging
 
+logger = logging.getLogger("[precisions]")
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Build path relative to the module
@@ -19,7 +21,7 @@ try:
 
 
 except FileNotFoundError:
-    print(f"[fatal] Precisions CSV file not found at {csv_path}")
+    logger.error(f"Precisions CSV file not found at {csv_path}")
     raise
 
 

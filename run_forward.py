@@ -1,6 +1,10 @@
 import asyncio
+
 from src.forward_test import ForwardTest
 from src.bootstrap import run_bootstrap
+from src.logger.logger_config import configure_logging
+
+configure_logging()
 
 
 async def main():

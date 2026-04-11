@@ -4,9 +4,11 @@ Telegram client module for sending messages, getting channel names, etc.
 
 import asyncio
 import httpx
+import logging
 
 from src.config import Config
 
+logger = logging.getLogger("[TelegramClient]")
 config = Config()
 
 
@@ -61,7 +63,7 @@ class TelegramClient:
                     return int(data["result"]["message_id"])
 
                 except KeyError as e:
-                    print(
+                    logger.warning(
                         f"[telegram] Message send failed. Probably an incorrect config: {e}"
                     )
                     raise
@@ -72,27 +74,29 @@ class TelegramClient:
                 ) as e:
                     # Retry only network-related errors
                     if attempt == max_retries:
-                        print(f"[telegram] Failed after {max_retries} attempts: {e}")
+                        logger.error(
+                            f"[telegram] Failed after {max_retries} attempts: {e}"
+                        )
                         raise
 
                     delay = base_retry_interval * (
                         2 ** (attempt - 1)
                     )  # exponential backoff
-                    print(
+                    logger.warning(
                         f"[telegram] Retry {attempt}/{max_retries} in {delay:.1f}s: {e}"
                     )
                     await asyncio.sleep(delay)
 
                 except httpx.HTTPStatusError as e:
                     # Don't retry most HTTP errors (e.g., 400, 401)
-                    print(
+                    logger.error(
                         f"[telegram] HTTP error: {e.response.status_code} - {e.response.text}"
                     )
                     raise
 
                 except Exception as e:
                     # Unknown errors → fail fast
-                    print(f"[telegram] Unexpected error: {e}")
+                    logger.error(f"[telegram] Unexpected error: {e}")
                     raise
 
     async def close(self):

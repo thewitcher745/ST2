@@ -3,12 +3,15 @@ This module contains data syncing and resyncing methods and utilities. These too
 the forward test is in sync with the Binance server.
 """
 
+import logging
+
 from datetime import timedelta
 from src.data_provider import BinanceDataProvider, LiveKLinesData, Tick
 from src.config import Config
 from src.utils import BinanceDataFetchError, convert_timeframe_to_timedelta
 
 config = Config()
+logger = logging.getLogger("[DataSyncManager]")
 
 
 class DataSyncManager:
@@ -29,14 +32,14 @@ class DataSyncManager:
                     include_live_candle=True,
                 )
                 self.klines_data[symbol] = LiveKLinesData(klines_df)
-                print(
+                logger.debug(
                     f"[startup] Fetched {self.klines_data[symbol].length} KLines for symbol {symbol}"
                 )
             except BinanceDataFetchError as e:
-                print(f"[startup] Giving up on {symbol} after retries: {e}")
+                logger.warning(f"[startup] Giving up on {symbol} after retries: {e}")
                 faulty_symbols.append(symbol)
             except Exception as e:
-                print(f"[startup] Failed to initialize {symbol}: {e}")
+                logger.warning(f"[startup] Failed to initialize {symbol}: {e}")
                 faulty_symbols.append(symbol)
 
         return faulty_symbols
@@ -45,9 +48,9 @@ class DataSyncManager:
         """
         Resyncs the KLines with the server by fetching a number of the most recent candles.
         """
-        print("------RESYNC------")
-        print(
-            f"[resync] Incoming tick timestamp is {tick.timestamp} (vs. {self.klines_data[tick.symbol].live_candle_time} on local)"
+        logger.debug("------RESYNC------")
+        logger.debug(
+            f"Incoming tick timestamp is {tick.timestamp} (vs. {self.klines_data[tick.symbol].live_candle_time} on local)"
         )
 
         symbol = tick.symbol
@@ -62,7 +65,7 @@ class DataSyncManager:
         # The resync buffer is a safety margin we add to each fetch to mend any possible inconsistency in the data
         resync_buffer = int(config.get("binance_cache_resync_buffer"))
         n_klines = int(time_elapsed / candle_timedelta) + resync_buffer
-        print(f"[resync] {n_klines} candles to fetch.")
+        logger.debug(f"{n_klines} candles to fetch.")
 
         # 3. Resync the KLinesData using the data just fetched.
         # If the gap is too large, replace everything.
@@ -83,9 +86,7 @@ class DataSyncManager:
                 include_live_candle=True,
             )
             self.klines_data[symbol].replace(incoming_klines_data, partial=True)
-        print(
-            f"[resync] Fetched {len(incoming_klines_data)} candles and resynced data."
-        )
+        logger.debug(f"Fetched {len(incoming_klines_data)} candles and resynced data.")
 
     def process_tick(self, tick: Tick) -> bool:
         """
@@ -101,9 +102,9 @@ class DataSyncManager:
             try:
                 self._resync_data(tick)
             except BinanceDataFetchError as e:
-                print(f"[resync] Failed to resync {tick.symbol}: {e}")
+                logger.warning(f"Failed to resync {tick.symbol}: {e}")
                 return False
             except Exception as e:
-                print(f"[fatal] Unexpected error for {tick.symbol}: {e}")
+                logger.error(f"Unexpected error for {tick.symbol}: {e}")
                 return False
             return True
