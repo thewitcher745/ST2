@@ -109,7 +109,7 @@ class SignalManager:
                             raise
 
                     logger.info(
-                        f"Canceled position with ID {position_to_cancel.id} for symbol {self._symbol}"
+                        f"Canceled position with ID {position_to_cancel.id} for symbol {self._symbol}, reply_id {reply_id}"
                     )
 
                     position_to_cancel.signal_canceled = True
@@ -132,7 +132,7 @@ class SignalManager:
                 message_id = await self._telegram_client.send_message(message_text)
 
             logger.info(
-                f"Sent position with ID {position_to_send.id} for symbol {self._symbol}"
+                f"Sent position with ID {position_to_send.id} for symbol {self._symbol}, message_id {message_id}"
             )
 
             assert isinstance(message_id, int)
