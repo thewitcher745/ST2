@@ -1,4 +1,5 @@
 - Improve opposite direction intra-candle accuracy edge cases
 - Add logging
 - Make message template less hardcoded
-- Implement not canceling entered boxes, slippage adjustment, box proximity checks
+- Implement not canceling entered boxes, slippage adjustment
+- Implement better config type-casting instead of hard-coding

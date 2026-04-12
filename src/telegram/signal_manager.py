@@ -4,6 +4,7 @@ import pickle
 import logging
 from httpx import HTTPStatusError
 
+from src.arg_parser import RuntimeArgParser
 from src.logic import LivePosition
 from src.logic.blocks.block import Block
 from src.telegram import TelegramClient
@@ -90,9 +91,11 @@ class SignalManager:
                     # Sometimes, if the message has been deleted or is otherwise unreachable, Telegram returns
                     # an error. This shouldn't happen, but it's safer to handle the error here as well.
                     try:
-                        await self._telegram_client.send_message(
-                            message_text, reply_id=reply_id
-                        )
+                        # In a dry run nothing is sent to the channels.
+                        if not RuntimeArgParser().args.dry:
+                            await self._telegram_client.send_message(
+                                message_text, reply_id=reply_id
+                            )
                     except HTTPStatusError as e:
                         if (
                             e.response.status_code == 400
@@ -122,7 +125,11 @@ class SignalManager:
                 continue
 
             message_text = MessageTemplate.format_signal(position_to_send, self._symbol)
-            message_id = await self._telegram_client.send_message(message_text)
+
+            message_id = 0
+            # In a dry run nothing is sent to the channels.
+            if not RuntimeArgParser().args.dry:
+                message_id = await self._telegram_client.send_message(message_text)
 
             logger.info(
                 f"Sent position with ID {position_to_send.id} for symbol {self._symbol}"

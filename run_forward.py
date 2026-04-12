@@ -1,13 +1,17 @@
 import asyncio
 
 from src.forward_test import ForwardTest
-from src.bootstrap import run_bootstrap
+from src.init import run_bootstrap, clear_previous
 from src.logger.logger_config import configure_logging
-
-configure_logging()
 
 
 async def main():
+    # Clears the state and logs folders if their flags are set.
+    clear_previous()
+
+    # Configures logger formatters
+    configure_logging()
+
     # Initializes the folder structure and necessary files.
     run_bootstrap()
 

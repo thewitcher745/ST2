@@ -2,7 +2,7 @@ from pathlib import Path
 import shutil
 import logging
 
-logger = logging.getLogger("[bootstrap]")
+logger = logging.getLogger("[init]")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -24,7 +24,7 @@ def ensure_directory(path: Path):
 def ensure_file_from_template(target: Path, template: Path):
     if not target.exists():
         logger.info(
-            f"[init] Created file {target} from template. Remember to fill the required data in."
+            f"Created file {target} from template. Remember to fill the required data in."
         )
         shutil.copy(template, target)
 
