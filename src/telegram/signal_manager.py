@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import cast
 import pickle
 import logging
+from httpx import HTTPStatusError
 
 from src.logic import LivePosition
 from src.logic.blocks.block import Block
@@ -77,9 +78,23 @@ class SignalManager:
                 message_text = "Cancel"
                 reply_id = position_to_cancel.telegram_message_id
 
-                await self._telegram_client.send_message(
-                    message_text, reply_id=reply_id
-                )
+                # Sometimes, if the message has been deleted or is otherwise unreachable, Telegram returns
+                # an error. This shouldn't happen, but it's safer to handle the error here as well.
+                try:
+                    await self._telegram_client.send_message(
+                        message_text, reply_id=reply_id
+                    )
+                except HTTPStatusError as e:
+                    if (
+                        e.response.status_code == 400
+                        and "message to be replied not found" in e.response.text
+                    ):
+                        logger.warning(
+                            f"Cannot cancel position {position_to_cancel.id} - original message deleted"
+                        )
+                        continue
+                    else:
+                        raise
 
                 logger.info(
                     f"Canceled position with ID {position_to_cancel.id} for symbol {self._symbol}"
