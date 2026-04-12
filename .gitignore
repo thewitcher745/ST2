@@ -1,5 +1,6 @@
 charting/
 data/klines
+data/state
 test.py
 **/__pycache__/
 chart.html
