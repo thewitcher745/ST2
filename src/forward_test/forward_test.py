@@ -40,6 +40,7 @@ class ForwardTest:
             s: SignalManager(symbol=s, telegram_client=self.telegram_client)
             for s in symbols
         }
+        self._current_price: dict[str, float] = {}
 
     def _remove_symbol(self, symbol: str):
         logger.warning(f"Removing {symbol} from forward test due to consecutive errors")
@@ -72,10 +73,16 @@ class ForwardTest:
             self.msb_identifier,
         )
 
+    def _update_current_price(self, symbol: str, current_price: float):
+        self._current_price[symbol] = current_price
+
     async def _process_signals(self, symbol: str):
         """Finds which signals need cancelling and which ones need posting for a given signal."""
         updated_blocks = self.block_managers[symbol].all_active_blocks
-        await self.signal_managers[symbol].process_signals(updated_blocks)
+        current_price = self._current_price[symbol]
+        await self.signal_managers[symbol].process_signals(
+            updated_blocks, current_price
+        )
 
     async def run(self) -> None:
         """
@@ -84,6 +91,7 @@ class ForwardTest:
         self._load_klines()
         for symbol in self._symbols:
             self._calc_for_symbol(symbol)
+            self._update_current_price(symbol, self.sync_manager.klines_data[symbol].close[-1])
             await self._process_signals(symbol)
 
         await self._start_live_loop()
@@ -108,13 +116,17 @@ class ForwardTest:
             tick = await self._get_latest_tick(queue)
             if isinstance(tick, Exception):
                 raise tick
+
+            symbol = tick.symbol
+
             # If the processing fails, remove the symbol. This generally means a resync failed.
             if not self.sync_manager.process_tick(tick):
                 self._remove_symbol(tick.symbol)
                 continue
 
-            self._calc_for_symbol(tick.symbol)
-            await self._process_signals(tick.symbol)
+            self._calc_for_symbol(symbol)
+            self._update_current_price(symbol, tick.price)
+            await self._process_signals(symbol)
 
     async def _get_latest_tick(self, queue: asyncio.Queue[Tick]) -> Tick:
         tick = await queue.get()
