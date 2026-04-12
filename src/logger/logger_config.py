@@ -1,6 +1,7 @@
 import logging
 import pathlib
 from logging.handlers import TimedRotatingFileHandler
+import time
 
 from src.config import Config
 
@@ -24,6 +25,8 @@ def configure_logging():
     formatter = logging.Formatter(
         "%(asctime)s | %(levelname)-8s | %(name)-25s | %(message)s"
     )
+
+    formatter.converter = time.gmtime
 
     file_handler = TimedRotatingFileHandler(
         log_filepath, when="midnight", backupCount=30, encoding="utf-8"
