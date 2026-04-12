@@ -153,7 +153,7 @@ class SignalManager:
                     return False
                 return True
             else:
-                if current_price < position.entry * (1 + proximity_check_percent / 100):
+                if current_price < position.entry * (1 - proximity_check_percent / 100):
                     return False
                 return True
 
