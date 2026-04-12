@@ -38,7 +38,8 @@ class MessageTemplate:
         message = f"""⚡⚡ #{symbol_text} ⚡⚡
 Exchanges: ByBit USDT, Bitget Futures, BingX Futures, Binance Futures
 Signal Type: Regular ({position.type})
-Leverage: {leverage_type} ({int(leverage)}.0X)
+Leverage: {leverage_type.capitalize()} ({int(leverage)}.0X)
+
 Entry Targets:
 1) {entry_string}
 
