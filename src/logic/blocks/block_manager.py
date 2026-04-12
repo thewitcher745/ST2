@@ -167,6 +167,10 @@ class BlockManager:
                             old_block.end_index = current_end_index
                             old_block.end_time = current_end_time
 
+                        # Remove the old block from the list of active blocks, if there, aka update the list of active blocks.
+                        if old_block in self.active_blocks[direction]:
+                            self.active_blocks[direction].remove(old_block)
+
                 # If no end index is found, it means the block has not ended yet, meaning it is still active.
                 # This is only useful for the forward test basically.
                 else:
