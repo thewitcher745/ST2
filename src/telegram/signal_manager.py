@@ -94,6 +94,9 @@ class SignalManager:
 
                     # Sometimes, if the message has been deleted or is otherwise unreachable, Telegram returns
                     # an error. This shouldn't happen, but it's safer to handle the error here as well.
+                    logger.info(
+                        f"Canceling position with ID {position_to_cancel.id} for symbol {self._symbol}, reply_id {reply_id}"
+                    )
                     try:
                         # In a dry run nothing is sent to the channels.
                         if not RuntimeArgParser().args.dry:
@@ -116,17 +119,12 @@ class SignalManager:
                         else:
                             raise
 
-                    logger.info(
-                        f"Canceled position with ID {position_to_cancel.id} for symbol {self._symbol}, reply_id {reply_id}"
-                    )
-
                     del self._sent_blocks_message_ids[block.id]
 
                     _save_state_required = True
 
         # Send the new and pending blocks
         for block in pending_blocks:
-            print(block)
             position_to_send = block.positions[0]
             if block in outdated_blocks:
                 continue
@@ -138,12 +136,11 @@ class SignalManager:
 
             message_id = 0
             # In a dry run nothing is sent to the channels.
+            logger.info(
+                f"Sending position with ID {position_to_send.id} for symbol {self._symbol}, message_id {message_id}"
+            )
             if not RuntimeArgParser().args.dry:
                 message_id = await self._telegram_client.send_message(message_text)
-
-            logger.info(
-                f"Sent position with ID {position_to_send.id} for symbol {self._symbol}, message_id {message_id}"
-            )
 
             assert isinstance(message_id, int)
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.
