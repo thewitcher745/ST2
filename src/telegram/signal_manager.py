@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import cast
 import pickle
 import logging
 from httpx import HTTPStatusError
 
 from src.arg_parser import RuntimeArgParser
-from src.logic import LivePosition
+from src.logic import Position
 from src.logic.blocks.block import Block
 from src.telegram import TelegramClient
 from src.config import Config
@@ -21,7 +20,8 @@ class SignalManager:
     def __init__(self, symbol: str, telegram_client: TelegramClient):
         self._telegram_client = telegram_client
         self._current_active_blocks: set[Block] = set()
-        self._sent_blocks: set[Block] = set()
+        # A dict of sent blocks' ID's and their message ID's, used for cancelations
+        self._sent_blocks_message_ids: dict[str, int] = {}
         self._initial_run: bool = (
             True  # Set to true since the first set of signals haven't been sent yet.
         )
@@ -35,7 +35,7 @@ class SignalManager:
         state = {
             "_current_active_blocks": self._current_active_blocks,
             "initial_run": self._initial_run,
-            "sent_blocks": self._sent_blocks,
+            "sent_blocks_message_ids": self._sent_blocks_message_ids,
         }
         with open(self._state_filepath, "wb") as f:
             pickle.dump(state, f)
@@ -47,7 +47,7 @@ class SignalManager:
                 state = pickle.load(f)
                 self._current_active_blocks = state["_current_active_blocks"]
                 self._initial_run = state["initial_run"]
-                self._sent_blocks = state["sent_blocks"]
+                self._sent_blocks_message_ids = state["sent_blocks_message_ids"]
             logger.info(f"Loaded state for {self._symbol}")
         except FileNotFoundError:
             logger.info(f"No saved state found for {self._symbol}, starting fresh")
@@ -73,20 +73,24 @@ class SignalManager:
         outdated_blocks = old_blocks_set - updated_blocks_set
 
         # Blocks that now exist but haven't been sent yet
-        pending_blocks = updated_blocks_set - self._sent_blocks
+        pending_blocks = [
+            block
+            for block in updated_blocks_set
+            if block.id not in self._sent_blocks_message_ids.keys()
+        ]
 
         # Only save the state if anything changes.
         _save_state_required = False
 
         # Cancel the outdated blocks
         for block in outdated_blocks:
-            if block in self._sent_blocks:
-                position_to_cancel = cast(LivePosition, block.positions[0])
+            if block.id in self._sent_blocks_message_ids.keys():
+                position_to_cancel = block.positions[0]
                 if not position_to_cancel.entered:
-                    assert isinstance(position_to_cancel, LivePosition)
+                    assert isinstance(position_to_cancel, Position)
 
                     message_text = "Cancel"
-                    reply_id = position_to_cancel.telegram_message_id
+                    reply_id = self._sent_blocks_message_ids[block.id]
 
                     # Sometimes, if the message has been deleted or is otherwise unreachable, Telegram returns
                     # an error. This shouldn't happen, but it's safer to handle the error here as well.
@@ -104,6 +108,10 @@ class SignalManager:
                             logger.warning(
                                 f"Cannot cancel position {position_to_cancel.id} - original message deleted"
                             )
+
+                            del self._sent_blocks_message_ids[block.id]
+                            _save_state_required = True
+
                             continue
                         else:
                             raise
@@ -112,12 +120,14 @@ class SignalManager:
                         f"Canceled position with ID {position_to_cancel.id} for symbol {self._symbol}, reply_id {reply_id}"
                     )
 
-                    position_to_cancel.signal_canceled = True
+                    del self._sent_blocks_message_ids[block.id]
+
                     _save_state_required = True
 
         # Send the new and pending blocks
         for block in pending_blocks:
-            position_to_send = cast(LivePosition, block.positions[0])
+            print(block)
+            position_to_send = block.positions[0]
             if block in outdated_blocks:
                 continue
 
@@ -137,18 +147,15 @@ class SignalManager:
 
             assert isinstance(message_id, int)
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.
-            position_to_send.telegram_message_id = message_id + 1
-            position_to_send.signal_sent = True
+            self._sent_blocks_message_ids[block.id] = message_id + 1
             _save_state_required = True
-
-            self._sent_blocks.add(block)
 
         self._current_active_blocks = updated_blocks_set
 
         if _save_state_required:
             self._save_state()
 
-    def _is_signal_sendable(self, position: LivePosition, current_price: float):
+    def _is_signal_sendable(self, position: Position, current_price: float):
         # Is the price close enough to the signal to post?
         if bool(config.get("signal_proximity_check")):
             proximity_check_percent = float(

@@ -2,7 +2,6 @@ from pandas import DataFrame
 
 from src.data_provider import KLinesData
 from .position import Position
-from .live_position import LivePosition
 from ..blocks.block import Block
 from ..backtest import PositionSimulator
 
@@ -12,19 +11,18 @@ class PositionManager:
         self.all_positions: dict[str, list[Position]] = {"long": [], "short": []}
         self.active_positions: dict[str, list[Position]] = {"long": [], "short": []}
 
-    def update_positions(self, blocks: list[Block], active=False, live=False):
+    def update_positions(self, blocks: list[Block], active=False):
         """
         Updates the list of positions from a given list of blocks, direction-agnostic.
         """
-        PositionClass = LivePosition if live else Position
         all_positions: dict[str, list[Position]] = {"long": [], "short": []}
         active_positions: dict[str, list[Position]] = {"long": [], "short": []}
         for block in blocks:
             type = "long" if block.direction == "bullish" else "short"
             if active:
-                active_positions[type].append(PositionClass(block))
+                active_positions[type].append(Position(block))
             else:
-                all_positions[type].append(PositionClass(block))
+                all_positions[type].append(Position(block))
 
         if active:
             self.active_positions = active_positions

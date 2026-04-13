@@ -8,7 +8,6 @@ from numpy import where
 
 if TYPE_CHECKING:
     from src.logic import Position
-    from src.logic import LivePosition
 
 
 class Block(ABC):
@@ -47,7 +46,7 @@ class Block(ABC):
         self.invalidation_price: float = invalidation_price
 
         # The positions associated with (derived from) the block
-        self.positions: list[Position | LivePosition] = []
+        self.positions: list[Position] = []
 
         self.id = f"{'Bu' if self.direction == 'bullish' else 'Be'}_{self.block_type}_{base_candle_time.strftime('%Y-%m-%dT%H:%M:%S')}"
 

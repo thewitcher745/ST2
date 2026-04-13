@@ -1,4 +1,4 @@
-from src.logic import LivePosition
+from src.logic import Position
 from src.config import Config
 from .precisions_dict import get_precision
 
@@ -21,7 +21,7 @@ class MessageTemplate:
         return "\n\nTrailing Configuration:\nStop: Breakeven -\nTrigger: Target (1)"
 
     @staticmethod
-    def format_signal(position: LivePosition, symbol: str) -> str:
+    def format_signal(position: Position, symbol: str) -> str:
         symbol_text = symbol.replace("USDT", "/USDT")
         leverage = int(config.get("leverage"))
         leverage_type = config.get("leverage_type")
