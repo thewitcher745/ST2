@@ -49,7 +49,7 @@ class StructureCalculator:
         block_manager.update_block_end_times(klines_data)
 
         position_manager.update_positions(
-            blocks=block_manager.all_active_blocks, active=True
+            blocks=block_manager.all_active_blocks_aslist, active=True
         )
 
         self._update_last_calc_time()

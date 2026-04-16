@@ -27,9 +27,14 @@ class BlockManager:
         self.active_blocks = {"bullish": [], "bearish": []}
 
     @property
-    def all_active_blocks(self) -> list[Block]:
+    def all_active_blocks_aslist(self) -> list[Block]:
         """Returns the active blocks as a list without direction separation."""
         return self.active_blocks["bullish"] + self.active_blocks["bearish"]
+
+    @property
+    def all_blocks_aslist(self) -> list[Block]:
+        """Returns all blocks as a list without direction separation."""
+        return self.all_blocks["bullish"] + self.active_blocks["bearish"]
 
     def update_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData

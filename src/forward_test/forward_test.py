@@ -78,7 +78,7 @@ class ForwardTest:
 
     async def _process_signals(self, symbol: str):
         """Finds which signals need cancelling and which ones need posting for a given signal."""
-        updated_blocks = self.block_managers[symbol].all_active_blocks
+        updated_blocks = self.block_managers[symbol].all_active_blocks_aslist
         current_price = self._current_price[symbol]
         await self.signal_managers[symbol].process_signals(
             updated_blocks, current_price
