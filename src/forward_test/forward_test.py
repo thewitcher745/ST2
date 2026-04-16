@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from .serializer import FTChartSerializer
 from src.telegram.signal_manager import SignalManager
 from src.telegram import TelegramClient
 from .calculator import StructureCalculator
@@ -28,6 +29,7 @@ class ForwardTest:
         self.tick_provider = BinanceTickProvider(symbols=symbols)
         self.sync_manager = DataSyncManager(symbols, data_provider=BinanceDataProvider)
         self.structure_calculator = StructureCalculator()
+        self.chart_serializer = FTChartSerializer()
 
         # One instance per symbol
         self.block_managers: dict[str, BlockManager] = {
@@ -91,7 +93,9 @@ class ForwardTest:
         self._load_klines()
         for symbol in self._symbols:
             self._calc_for_symbol(symbol)
-            self._update_current_price(symbol, self.sync_manager.klines_data[symbol].close[-1])
+            self._update_current_price(
+                symbol, self.sync_manager.klines_data[symbol].close[-1]
+            )
             await self._process_signals(symbol)
 
         await self._start_live_loop()
@@ -127,9 +131,19 @@ class ForwardTest:
             self._calc_for_symbol(symbol)
             self._update_current_price(symbol, tick.price)
             await self._process_signals(symbol)
+            self._write_data()
 
     async def _get_latest_tick(self, queue: asyncio.Queue[Tick]) -> Tick:
         tick = await queue.get()
         while not queue.empty():
             tick = queue.get_nowait()
         return tick
+
+    def _write_data(self):
+        """
+        Writes serialized data required for charting to a file every calc_interval seconds.
+        """
+        agg_blocks_list = {}
+        for symbol in self._symbols:
+            agg_blocks_list[symbol] = self.block_managers[symbol].all_blocks_aslist
+        self.chart_serializer.write(self.sync_manager.klines_data, agg_blocks_list)

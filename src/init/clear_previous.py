@@ -58,7 +58,18 @@ def _clear_klines():
         print("KLines directory not found or already empty.")
 
 
+def _clear_chart():
+    state_dir = "data/chart"
+
+    if _clear_dir(state_dir):
+        print("Chart data directory cleared.")
+    else:
+        print("Chart data directory not found or already empty.")
+
+
 def clear_previous():
+    _clear_chart()
+    
     args = RuntimeArgParser().args
     if args.clear_logs or args.clean:
         _clear_logs()

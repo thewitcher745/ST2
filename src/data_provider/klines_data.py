@@ -15,3 +15,12 @@ class KLinesData:
         self.low: NDArray[float64] = array(klines_df.low)
         self.close: NDArray[float64] = array(klines_df.close)
         self.length = len(self.close)
+
+    def get_dict_format(self):
+        return {
+            "time": self.time.astype("datetime64[ns]").astype("int64"),
+            "open": self.open,
+            "high": self.high,
+            "low": self.low,
+            "close": self.close,
+        }

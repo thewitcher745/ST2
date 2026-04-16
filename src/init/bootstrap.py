@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 STRUCTURE = {
-    "directories": ["data/klines", "data/state", "logs"],
+    "directories": ["data/klines", "data/state", "data/chart", "logs"],
     "files": [
         (".env.secret", ".env.secret.template"),
     ],
