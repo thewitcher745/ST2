@@ -33,7 +33,7 @@ class StructureCalculator:
         now = datetime.now()
         if self._last_calc_time is not None and (
             now - self._last_calc_time
-        ).seconds < int(config.get("calc_interval")):
+        ).total_seconds() < int(config.get("calc_interval")):
             return
 
         zigzag_df = zigzag.calculate(klines_data)
