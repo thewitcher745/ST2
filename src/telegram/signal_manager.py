@@ -135,12 +135,14 @@ class SignalManager:
             message_text = MessageTemplate.format_signal(position_to_send, self._symbol)
 
             message_id = 0
+
+            if not RuntimeArgParser().args.dry:
+                message_id = await self._telegram_client.send_message(message_text)
+
             # In a dry run nothing is sent to the channels.
             logger.info(
                 f"Sending position with ID {position_to_send.id} for symbol {self._symbol}, message_id {message_id}"
             )
-            if not RuntimeArgParser().args.dry:
-                message_id = await self._telegram_client.send_message(message_text)
 
             assert isinstance(message_id, int)
             # The +1 is because Cornix re-sends the message with an inline keyboard attached.
@@ -160,9 +162,7 @@ class SignalManager:
             )
 
             if position.type == "long":
-                if current_price > position.entry * (
-                    1 + proximity_check_percent / 100
-                ):
+                if current_price > position.entry * (1 + proximity_check_percent / 100):
                     return False
             else:
                 if current_price < position.entry * (1 - proximity_check_percent / 100):
