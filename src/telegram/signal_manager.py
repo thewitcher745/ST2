@@ -86,7 +86,7 @@ class SignalManager:
         for block in outdated_blocks:
             if block.id in self._sent_blocks_message_ids.keys():
                 position_to_cancel = block.positions[0]
-                if not position_to_cancel.entered:
+                if self._is_signal_cancelable(position_to_cancel):
                     assert isinstance(position_to_cancel, Position)
 
                     message_text = "Cancel"
@@ -160,16 +160,29 @@ class SignalManager:
             )
 
             if position.type == "long":
-                if current_price > position.entry * (1 + proximity_check_percent / 100):
+                if current_price > position.entry * (
+                    1 + proximity_check_percent / 100
+                ):
                     return False
-                return True
             else:
                 if current_price < position.entry * (1 - proximity_check_percent / 100):
                     return False
-                return True
 
         # Is the price valid in relation to the stoploss?
         if position.type == "long":
-            return current_price > position.stoplosses[0]
+            if current_price <= position.stoplosses[0]:
+                return False
         else:
-            return current_price < position.stoplosses[0]
+            if current_price >= position.stoplosses[0]:
+                return False
+
+        # Has the position been entered before? # TODO: Implement bounces. The logic should probably live somewhere around here.
+        if position.entered:
+            return False
+
+        return True
+
+    def _is_signal_cancelable(self, position: Position):
+        # If the position has been entered, don't cancel it.
+        if position.entered:
+            return False

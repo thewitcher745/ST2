@@ -48,8 +48,7 @@ class StructureCalculator:
         block_manager.update_blocks(msbs_df, zigzag_df, klines_data)
         block_manager.update_block_end_times(klines_data)
 
-        position_manager.update_positions(
-            blocks=block_manager.all_active_blocks_aslist, active=True
-        )
+        position_manager.update_positions(blocks=block_manager.all_active_blocks_aslist)
+        position_manager.simulate_all_positions(klines_data)
 
         self._update_last_calc_time()
