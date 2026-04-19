@@ -1,5 +1,5 @@
 import argparse
-from typing import Any
+from typing import Any, Optional
 from dotenv import dotenv_values
 
 from .config_schema import CONFIG_SCHEMA
@@ -61,8 +61,8 @@ class Config:
     signal_proximity_check: bool
     signal_proximity_check_percent: int
     chart_data_write_interval: float
-    proxy_server: str
-    dev: bool
+    proxy_server: Optional[str] = None
+    dev: Optional[bool] = False
 
     # Credentials
     TG_BOT_AUTH_TOKEN: str
@@ -97,15 +97,20 @@ class Config:
             help="Doesn't post anything to any Telegram channel, for debugging purposes.",
         )  # Only logs positions to console, not Telegram posting
         argument_parser.add_argument(
-            "-c", "--clean", action="store_true", help="Clears all caches and logs before running."
+            "-c",
+            "--clean",
+            action="store_true",
+            help="Clears all caches and logs before running.",
         )  # Cleans everything
         argument_parser.add_argument(
-            "-s", "--symbols_filename",
+            "-s",
+            "--symbols_filename",
             default="symbols.csv",
             help="Name of the CSV file containing the symbols in data/symbol_lists",
         )  # Name of the .CSV file containing the symbols for the forward test
         argument_parser.add_argument(
-            "-d", "--direction",
+            "-d",
+            "--direction",
             choices=["long", "short", "both"],
             default=None,
             help="Limit the positions to one direction only.",
