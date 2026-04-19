@@ -3,7 +3,6 @@ import pickle
 import logging
 from httpx import HTTPStatusError
 
-from src.arg_parser import RuntimeArgParser
 from src.logic import Position
 from src.logic.blocks.block import Block
 from src.telegram import TelegramClient
@@ -99,7 +98,7 @@ class SignalManager:
                     )
                     try:
                         # In a dry run nothing is sent to the channels.
-                        if not RuntimeArgParser().args.dry:
+                        if not config.dry:
                             await self._telegram_client.send_message(
                                 message_text, reply_id=reply_id
                             )
@@ -136,7 +135,7 @@ class SignalManager:
 
             message_id = 0
 
-            if not RuntimeArgParser().args.dry:
+            if not config.dry:
                 message_id = await self._telegram_client.send_message(message_text)
 
             # In a dry run nothing is sent to the channels.
@@ -156,10 +155,8 @@ class SignalManager:
 
     def _is_signal_sendable(self, position: Position, current_price: float):
         # Is the price close enough to the signal to post?
-        if bool(config.get("signal_proximity_check")):
-            proximity_check_percent = float(
-                config.get("signal_proximity_check_percent")
-            )
+        if config.signal_proximity_check:
+            proximity_check_percent = config.signal_proximity_check_percent
 
             if position.type == "long":
                 if current_price > position.entry * (1 + proximity_check_percent / 100):

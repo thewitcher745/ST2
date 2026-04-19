@@ -23,8 +23,8 @@ class MessageTemplate:
     @staticmethod
     def format_signal(position: Position, symbol: str) -> str:
         symbol_text = symbol.replace("USDT", "/USDT")
-        leverage = int(config.get("leverage"))
-        leverage_type = config.get("leverage_type")
+        leverage = config.leverage
+        leverage_type = config.leverage_type
         entry_string = MessageTemplate._format_price_precision(position.entry, symbol)
         targets_string = [
             f"\n{target_id + 1}) {MessageTemplate._format_price_precision(target, symbol)}"
@@ -52,7 +52,7 @@ Take-Profit Targets:"""
 
         message += trailing_setup_string
 
-        if bool(config.get("validation")):
+        if config.validation:
             message += f"\n\nID:\n{position.id}"
 
         return message

@@ -16,9 +16,9 @@ config = Config()
 
 class BinanceDataProvider(DataProvider):
     def __init__(self, api_key: str = "", api_secret: str = ""):
-        proxy = config.get_optional("proxy_server")
-        max_retries = int(config.get("binance_cache_max_retries"))
-        retry_interval = float(config.get("binance_cache_retry_interval"))
+        proxy = config.proxy_server
+        max_retries = config.binance_cache_max_retries
+        retry_interval = config.binance_cache_retry_interval
 
         last_exception = None
 
@@ -65,8 +65,8 @@ class BinanceDataProvider(DataProvider):
         most_recent: If set, the start_time argument isn't passed to the fetching method, resulting in returning "limit" recent KLines
         include_live_candle: If set to True, will include the latest (live open) candle in the returned DataFrame.
         """
-        max_retries = int(config.get("binance_cache_max_retries"))
-        retry_interval = float(config.get("binance_cache_retry_interval"))
+        max_retries = config.binance_cache_max_retries
+        retry_interval = config.binance_cache_retry_interval
 
         last_exception = None
         for attempt in range(1, max_retries + 1):

@@ -27,7 +27,7 @@ class SimulatedTickProvider(AbstractTickProvider):
             tick_interval: The interval, in seconds, between the ticks, default 5 seconds.
         """
         self.klines_data = klines_data  # keyed by symbol
-        self.update_interval = float(config.get("update_interval"))
+        self.update_interval = config.calc_interval
         self._latest_ticks: dict[str, Tick] = {}
         self._simulate_error: Exception | None = None
         self._stop_event: asyncio.Event = asyncio.Event()
@@ -36,14 +36,14 @@ class SimulatedTickProvider(AbstractTickProvider):
 
         for kd in klines_data.values():
             timeframe_seconds = (kd.time[1] - kd.time[0]).total_seconds()
-            sim_interval = float(config.get("live_sim_tick_interval"))
+            sim_interval = config.live_sim_tick_interval
             if int(timeframe_seconds // sim_interval) < 2:
                 raise ValueError(
                     "Not enough ticks per candle for the given live_sim_interval."
                 )
 
     def _candle_times(self, candle_start_time, ticks_per_candle: int) -> list:
-        sim_interval = float(config.get("live_sim_tick_interval"))
+        sim_interval = config.live_sim_tick_interval
         return [
             candle_start_time + timedelta(seconds=i * sim_interval)
             for i in range(ticks_per_candle)
@@ -51,7 +51,7 @@ class SimulatedTickProvider(AbstractTickProvider):
 
     def _generate_candle_ticks(self, symbol: str, candle_index: int) -> list[Tick]:
         kd = self.klines_data[symbol]
-        sim_interval = float(config.get("live_sim_tick_interval"))
+        sim_interval = config.live_sim_tick_interval
         timeframe_seconds = (kd.time[1] - kd.time[0]).total_seconds()
         ticks_per_candle = int(timeframe_seconds // sim_interval)
 
@@ -101,7 +101,7 @@ class SimulatedTickProvider(AbstractTickProvider):
 
     async def _simulate_symbol(self, symbol: str, queue: asyncio.Queue[Tick]) -> None:
         try:
-            sim_interval = float(config.get("live_sim_tick_interval"))
+            sim_interval = config.live_sim_tick_interval
             kd = self.klines_data[symbol]
             for i in range(kd.length):
                 for tick in self._generate_candle_ticks(symbol, i):

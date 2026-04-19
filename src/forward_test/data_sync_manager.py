@@ -27,8 +27,8 @@ class DataSyncManager:
             try:
                 klines_df = self.data_provider.get_latest_klines(
                     symbol,
-                    interval=config.get("timeframe"),
-                    time_delta=timedelta(days=int(config.get("startup_n_days"))),
+                    interval=config.timeframe,
+                    time_delta=timedelta(days=config.startup_n_days),
                     include_live_candle=True,
                 )
                 self.klines_data[symbol] = LiveKLinesData(klines_df)
@@ -60,10 +60,10 @@ class DataSyncManager:
         )
 
         # 2. Find how many klines we need to fetch, and add a fixed buffer to it for safety.
-        timeframe = config.get("timeframe")
+        timeframe = config.timeframe
         candle_timedelta = convert_timeframe_to_timedelta(timeframe)
         # The resync buffer is a safety margin we add to each fetch to mend any possible inconsistency in the data
-        resync_buffer = int(config.get("binance_cache_resync_buffer"))
+        resync_buffer = config.binance_cache_resync_buffer
         n_klines = int(time_elapsed / candle_timedelta) + resync_buffer
         # logger.debug(f"{n_klines} candles to fetch.")
 
@@ -73,7 +73,7 @@ class DataSyncManager:
             incoming_klines_data = self.data_provider.get_latest_klines(
                 symbol,
                 interval=timeframe,
-                time_delta=timedelta(days=int(config.get("startup_n_days"))),
+                time_delta=timedelta(days=config.startup_n_days),
                 include_live_candle=True,
             )
             self.klines_data[symbol].replace(incoming_klines_data)

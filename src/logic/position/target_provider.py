@@ -13,7 +13,7 @@ config = Config()
 class TargetProvider:
     @staticmethod
     def get_targets(position) -> NDArray[float64]:
-        method = config.get("target_setup_function")
+        method = config.target_setup_function
         return getattr(TargetProvider, method)(position)
 
     @staticmethod
@@ -22,7 +22,7 @@ class TargetProvider:
         4 evenly spaced targets. Spaced by 1 block height * target_coeff between them.
         """
         base_height = position.base_block.height
-        target_coeff = float(config.get("target_coeff"))
+        target_coeff = config.target_coeff
 
         if position.type == "long":
             targets = array(

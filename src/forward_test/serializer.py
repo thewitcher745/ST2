@@ -82,7 +82,7 @@ class FTChartSerializer:
         now = datetime.now()
         if self._last_write_time is not None and (
             now - self._last_write_time
-        ).total_seconds() < int(config.get("calc_interval")):
+        ).total_seconds() < config.calc_interval:
             return
 
         self._pack_serialized_data(agg_klines_data, agg_blocks_list)

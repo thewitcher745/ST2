@@ -14,19 +14,17 @@ config = Config()
 
 class TelegramClient:
     def __init__(self):
-        self._token: str = config.get("TG_BOT_AUTH_TOKEN")
+        self._token: str = config.TG_BOT_AUTH_TOKEN
         self._channel_id: str = self._get_channel_id()
-        self._async_client = httpx.AsyncClient(
-            proxy=config.get_optional("proxy_server")
-        )
+        self._async_client = httpx.AsyncClient(proxy=config.proxy_server)
         self._send_message_lock = asyncio.Lock()
-        self._send_message_delay = float(config.get("telegram_api_send_message_delay"))
+        self._send_message_delay = config.telegram_api_send_message_delay
 
     def _get_channel_id(self):
-        if not bool(config.get_optional("dev")):
-            return config.get("TG_PROD_CHANNEL_ID")
+        if not config.dev:
+            return config.TG_PROD_CHANNEL_ID
         else:
-            return config.get("TG_DEV_CHANNEL_ID")
+            return config.TG_DEV_CHANNEL_ID
 
     async def send_message(
         self, message: str, reply_id: int | None = None
@@ -40,10 +38,10 @@ class TelegramClient:
             "text": message,
             "reply_to_message_id": reply_id,
         }
-        url = config.get("telegram_api_endpoint")
+        url = config.telegram_api_endpoint
 
-        max_retries = int(config.get("telegram_api_max_retries"))
-        base_retry_interval = float(config.get("telegram_api_base_retry_interval"))
+        max_retries = config.telegram_api_max_retries
+        base_retry_interval = config.telegram_api_base_retry_interval
 
         # Queue is shared between tasks
         async with self._send_message_lock:

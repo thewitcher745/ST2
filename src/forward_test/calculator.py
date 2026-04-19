@@ -31,9 +31,10 @@ class StructureCalculator:
         self.klines_data for that symbol
         """
         now = datetime.now()
-        if self._last_calc_time is not None and (
-            now - self._last_calc_time
-        ).total_seconds() < int(config.get("calc_interval")):
+        if (
+            self._last_calc_time is not None
+            and (now - self._last_calc_time).total_seconds() < config.calc_interval
+        ):
             return
 
         zigzag_df = zigzag.calculate(klines_data)

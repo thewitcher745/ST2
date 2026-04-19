@@ -351,7 +351,7 @@ class PositionSimulator:
         if not pos.entered:
             return
 
-        total_cap = float(config.get("usdt_per_trade")) * float(config.get("leverage"))
+        total_cap = config.usdt_per_trade * config.leverage
         qty_per_target = (total_cap / pos.entry) / len(pos.targets)
         stop_price = pos.stop_price if pos.stop_price else pos.stoplosses[0]
         hits = pos.highest_target
@@ -366,5 +366,5 @@ class PositionSimulator:
             pos.net_profit = total_cap - delta
 
         pos.percent_profit = (
-            pos.net_profit / float(config.get("usdt_per_trade"))
+            pos.net_profit / config.usdt_per_trade
         ) * 100

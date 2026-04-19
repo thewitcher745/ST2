@@ -10,7 +10,7 @@ config = Config()
 
 
 class MSBIdentifier:
-    def __init__(self, fib_factor: float = float(config.get("fib_factor"))):
+    def __init__(self, fib_factor: float = config.fib_factor):
         """
         Initializes 3-pivot patterns for Market Structure Breaks (MSB).
         A break is defined by the transition from a trend-continuation

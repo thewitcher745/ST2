@@ -38,17 +38,18 @@ class BinanceTickProvider(AbstractTickProvider):
 
     async def _listen(self, queue: asyncio.Queue[Tick]):
         streams = [
-            f"{symbol.lower()}@kline_{config.get('timeframe')}"
-            for symbol in self._symbols
+            f"{symbol.lower()}@kline_{config.timeframe}" for symbol in self._symbols
         ]
         streams_string = "/".join(streams)
-        url: str = config.get("binance_ws_endpoint") + "?streams=" + streams_string
+        url: str = config.binance_ws_endpoint + "?streams=" + streams_string
 
         # This infinite loop tries to reconnect if the connection is severed cleanly. Otherwise it is broken.
         while True:
             self._listen_error = None
             try:
-                async with connect(url, proxy=config.get_optional("proxy_server")) as ws:
+                async with connect(
+                    url, proxy=config.proxy_server
+                ) as ws:
                     self._times_retried = 0
                     async for message in ws:
                         data = json.loads(message)
@@ -81,11 +82,11 @@ class BinanceTickProvider(AbstractTickProvider):
             # If number of retries has exceeded max, break and raise an error.
             except Exception as e:
                 self._listen_error = e
-                if self._times_retried > int(config.get("ws_error_max_retries")):
+                if self._times_retried > config.ws_error_max_retries:
                     break
 
                 self._times_retried += 1
-                await asyncio.sleep(float(config.get("ws_error_retry_interval")))
+                await asyncio.sleep(config.ws_error_retry_interval)
 
     async def ticks(self) -> AsyncGenerator[Tick, None]:
         if self._running:

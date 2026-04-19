@@ -5,7 +5,7 @@ Module for clearing the logs and state from previous runs, if the flag for it is
 import os
 import shutil
 
-from src.arg_parser import RuntimeArgParser
+from src.config import Config
 
 
 def _clear_dir(dir: str) -> bool:
@@ -69,13 +69,12 @@ def _clear_chart():
 
 def clear_previous():
     _clear_chart()
-    
-    args = RuntimeArgParser().args
-    if args.clear_logs or args.clean:
+
+    if Config().clear_logs or Config().clean:
         _clear_logs()
 
-    if args.clear_state or args.clean:
+    if Config().clear_state or Config().clean:
         _clear_state()
 
-    if args.clear_klines or args.clean:
+    if Config().clear_klines or Config().clean:
         _clear_klines()

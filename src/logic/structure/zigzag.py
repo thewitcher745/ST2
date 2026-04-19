@@ -9,7 +9,7 @@ config = Config()
 
 
 class Zigzag:
-    def __init__(self, window_size: int = int(config.get("lag"))):
+    def __init__(self, window_size: int = config.lag):
         self.window_size = window_size
 
     def calculate(self, klines_data: KLinesData) -> DataFrame:
