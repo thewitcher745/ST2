@@ -3,3 +3,4 @@
 - Make message template less hardcoded
 - Implement not canceling entered boxes, slippage adjustment
 - Implement better config type-casting instead of hard-coding
+- Only keep signals as "pending" if the position attributed to them has conditions that can be valid in the future, such as proximity. Don't wait on positions that for example have been already entered or stopped.
