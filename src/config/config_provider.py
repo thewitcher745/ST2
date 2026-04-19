@@ -88,19 +88,27 @@ class Config:
             "--clear_state", action="store_true"
         )  # Clears the state files
         argument_parser.add_argument(
-            "--clear_klines", action="store_true"
+            "--clear_klines",
+            action="store_true",
         )  # Clears the KLines files
         argument_parser.add_argument(
-            "--dry", action="store_true"
+            "--dry",
+            action="store_true",
+            help="Doesn't post anything to any Telegram channel, for debugging purposes.",
         )  # Only logs positions to console, not Telegram posting
         argument_parser.add_argument(
-            "--clean", action="store_true"
+            "-c", "--clean", action="store_true", help="Clears all caches and logs before running."
         )  # Cleans everything
         argument_parser.add_argument(
-            "--symbols_filename", default="symbols.csv"
+            "-s", "--symbols_filename",
+            default="symbols.csv",
+            help="Name of the CSV file containing the symbols in data/symbol_lists",
         )  # Name of the .CSV file containing the symbols for the forward test
         argument_parser.add_argument(
-            "--direction", choices=["long", "short", "both"], default=None
+            "-d", "--direction",
+            choices=["long", "short", "both"],
+            default=None,
+            help="Limit the positions to one direction only.",
         )  # Name of the .CSV file containing the symbols for the forward test
 
         return argument_parser.parse_args()
