@@ -21,14 +21,39 @@ class LiveKLinesData(KLinesData):
         Performed when there is a data gap or mismatch.
         """
         if partial:
-            incoming_length = len(klines_df)
-            self.time[-incoming_length:] = array(klines_df.time, dtype=object)
+            incoming_first_time = klines_df.time.iloc[0]
 
-            self.open[-incoming_length:] = array(klines_df.open)
-            self.high[-incoming_length:] = array(klines_df.high)
-            self.low[-incoming_length:] = array(klines_df.low)
-            self.close[-incoming_length:] = array(klines_df.close)
-            # The length doesn't change in a partial replacement so it isn't recalculated.
+            # Find the index where the incoming data should start replacing
+            matches = self.time == incoming_first_time
+            indices = matches.nonzero()[0]
+
+            if len(indices) > 0:
+                start_idx = indices[0]
+            else:
+                # Fallback to length-based replacement
+                incoming_length = len(klines_df)
+                start_idx = len(self.time) - incoming_length
+
+            # Replace from start_idx to end, then append the extra candle
+            candles_to_replace = len(self.time) - start_idx
+
+            # Replace the overlapping portion
+            self.time[start_idx:] = array(
+                klines_df.time[:candles_to_replace], dtype=object
+            )
+            self.open[start_idx:] = array(klines_df.open[:candles_to_replace])
+            self.high[start_idx:] = array(klines_df.high[:candles_to_replace])
+            self.low[start_idx:] = array(klines_df.low[:candles_to_replace])
+            self.close[start_idx:] = array(klines_df.close[:candles_to_replace])
+
+            # Append the new candle (the extra one)
+            if len(klines_df) > candles_to_replace:
+                self.time = append(self.time, klines_df.time.iloc[-1])
+                self.open = append(self.open, klines_df.open.iloc[-1])
+                self.high = append(self.high, klines_df.high.iloc[-1])
+                self.low = append(self.low, klines_df.low.iloc[-1])
+                self.close = append(self.close, klines_df.close.iloc[-1])
+                self.length = len(self.close)
 
             return
 
