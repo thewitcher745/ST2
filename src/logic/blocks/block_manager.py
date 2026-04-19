@@ -2,9 +2,12 @@ from typing import Literal
 from pandas import DataFrame, Timestamp
 
 from src.data_provider import KLinesData
+from src.config import Config
 from .block import Block
 from .block_factory import BlockFactory
 from ..structure.leg import Leg
+
+config = Config()
 
 
 class BlockManager:
@@ -45,6 +48,12 @@ class BlockManager:
         self.reset_blocks()
         for _, row in msbs_df.iterrows():
             direction: Literal["bullish", "bearish"] = row["direction"]  # type: ignore[assignment]
+            
+            # If a direction is specified, ignore the MSB's in other directions
+            if config.direction == "long" and direction == "bearish":
+                continue
+            if config.direction == "short" and direction == "bullish":
+                continue
 
             # If the MSB being processed has a KLine index earlier than that of the first active block found in
             # older iterations of the forward test, completely skip adding it to the list. Only do this if

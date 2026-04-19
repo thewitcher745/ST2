@@ -2,6 +2,7 @@ charting/
 data/klines
 data/state
 data/chart
+data/symbol_lists
 test.py
 **/__pycache__/
 chart.html

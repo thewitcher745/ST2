@@ -1,4 +1,5 @@
 import asyncio
+import csv
 import logging
 
 from .serializer import FTChartSerializer
@@ -19,30 +20,38 @@ logger = logging.getLogger("[ForwardTest]")
 
 
 class ForwardTest:
-    def __init__(self, symbols: list[str]):
-        self._symbols = symbols
+    def __init__(self, symbols_filename: str):
+        self._symbols = self._load_symbols(f"data/symbol_lists/{symbols_filename}")
+        
+        logger.info(f"Added symbols {self._symbols}")
 
         # Shared across all symbols
         self.zigzag = Zigzag()
         self.msb_identifier = MSBIdentifier()
         self.telegram_client = TelegramClient()
-        self.tick_provider = BinanceTickProvider(symbols=symbols)
-        self.sync_manager = DataSyncManager(symbols, data_provider=BinanceDataProvider)
+        self.tick_provider = BinanceTickProvider(symbols=self._symbols)
+        self.sync_manager = DataSyncManager(
+            self._symbols, data_provider=BinanceDataProvider
+        )
         self.structure_calculator = StructureCalculator()
         self.chart_serializer = FTChartSerializer()
 
         # One instance per symbol
         self.block_managers: dict[str, BlockManager] = {
-            s: BlockManager() for s in symbols
+            s: BlockManager() for s in self._symbols
         }
         self.position_managers: dict[str, PositionManager] = {
-            s: PositionManager() for s in symbols
+            s: PositionManager() for s in self._symbols
         }
         self.signal_managers: dict[str, SignalManager] = {
             s: SignalManager(symbol=s, telegram_client=self.telegram_client)
-            for s in symbols
+            for s in self._symbols
         }
         self._current_price: dict[str, float] = {}
+
+    def _load_symbols(self, filepath: str) -> list[str]:
+        with open(filepath, "r") as fs:
+            return [row[0].strip().upper() for row in csv.reader(fs)]
 
     def _remove_symbol(self, symbol: str):
         logger.warning(f"Removing {symbol} from forward test due to consecutive errors")

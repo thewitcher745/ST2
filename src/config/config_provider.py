@@ -75,6 +75,8 @@ class Config:
     clear_klines: bool
     dry: bool
     clean: bool
+    symbols_filename: str
+    direction: str
 
     def _get_args(self):
         argument_parser = argparse.ArgumentParser("ST2 Runtime args")
@@ -94,6 +96,12 @@ class Config:
         argument_parser.add_argument(
             "--clean", action="store_true"
         )  # Cleans everything
+        argument_parser.add_argument(
+            "--symbols_filename", default="symbols.csv"
+        )  # Name of the .CSV file containing the symbols for the forward test
+        argument_parser.add_argument(
+            "--direction", choices=["long", "short", "both"], default=None
+        )  # Name of the .CSV file containing the symbols for the forward test
 
         return argument_parser.parse_args()
 

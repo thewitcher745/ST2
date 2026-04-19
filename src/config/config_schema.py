@@ -40,4 +40,6 @@ CONFIG_SCHEMA = {
     "clear_klines": bool,
     "dry": bool,
     "clean": bool,
+    "symbols_filename": str,
+    "direction": str,
 }
