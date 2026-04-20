@@ -10,6 +10,18 @@ from ..structure.leg import Leg
 config = Config()
 
 
+def is_block_height_percentage_valid(block: Block):
+    """
+    Checks if the height percentage of a block (of any type, OB/BB/MB) is within
+    the range specified by min_block_height_percentage and max_block_height_percentage.
+    """
+    return (
+        config.min_block_height_percentage
+        <= block.height_percentage
+        <= config.max_block_height_percentage
+    )
+
+
 class BlockManager:
     """The 'Orchestrator' that manages the block list."""
 
@@ -48,7 +60,7 @@ class BlockManager:
         self.reset_blocks()
         for _, row in msbs_df.iterrows():
             direction: Literal["bullish", "bearish"] = row["direction"]  # type: ignore[assignment]
-            
+
             # If a direction is specified, ignore the MSB's in other directions
             if config.direction == "long" and direction == "bearish":
                 continue
@@ -134,12 +146,17 @@ class BlockManager:
                 )
 
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
+            # Also check if the blocks are in the valid range, as defined by config variables
+            # min_block_height_percentage and max_block_height_percentage
             if bb:
-                self.all_blocks[direction].append(bb)
+                if is_block_height_percentage_valid(bb):
+                    self.all_blocks[direction].append(bb)
             if mb:
-                self.all_blocks[direction].append(mb)
+                if is_block_height_percentage_valid(mb):
+                    self.all_blocks[direction].append(mb)
             if ob:
-                self.all_blocks[direction].append(ob)
+                if is_block_height_percentage_valid(ob):
+                    self.all_blocks[direction].append(ob)
 
     def update_block_end_times(self, klines_data: KLinesData):
         """
