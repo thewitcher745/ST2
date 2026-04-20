@@ -10,17 +10,20 @@ from numpy.typing import NDArray
 
 from src.config import Config
 
+if TYPE_CHECKING:
+    from src.logic import Position
+
 config = Config()
 
 
 class StoplossProvider:
     @staticmethod
-    def get_stoplosses(position) -> NDArray[float64]:
+    def get_stoplosses(position: Position) -> NDArray[float64]:
         method = config.stoploss_setup_function
         return getattr(StoplossProvider, method)(position)
 
     @staticmethod
-    def default(position) -> NDArray[float64]:
+    def default(position: Position) -> NDArray[float64]:
         """
         No trailing stoploss configuration. Fixed stoploss all the way.
         """
@@ -41,7 +44,7 @@ class StoplossProvider:
         return stoplosses
 
     @staticmethod
-    def trailing_breakeven_t1(position) -> NDArray[float64]:
+    def trailing_breakeven_t1(position: Position) -> NDArray[float64]:
         """
         No trailing stoploss configuration. Fixed stoploss all the way.
         """
