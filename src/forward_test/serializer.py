@@ -95,6 +95,6 @@ class FTChartSerializer:
         except Exception as e:
             logger.error(f"Writing data to file failed: {e}")
 
-        logger.debug("Wrote serialized data to files.")
+        # logger.debug("Wrote serialized data to files.")
 
         self._update_last_write_time()
