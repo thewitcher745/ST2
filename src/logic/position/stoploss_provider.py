@@ -5,6 +5,8 @@ the size of the target array, which is one stoploss for each target except the l
 output shows where the stoploss is after each target has been hit.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from numpy import float64, array
 from numpy.typing import NDArray
 
@@ -55,6 +57,73 @@ class StoplossProvider:
 
         # sl_0 is the stoploss as calculated from the block height and stoploss_coeff, no
         # other modification applied.
+        if position.type == "long":
+            sl_0 = position.entry - stoploss_coeff * base_height
+        else:
+            sl_0 = position.entry + stoploss_coeff * base_height
+
+        stoplosses = array([sl_0] + [position.entry] * (sl_array_length - 1))
+
+        return stoplosses
+
+    @staticmethod
+    def small_blocks_refined_no_trailing(
+        position: Position,
+    ) -> NDArray[float64]:
+        """
+        Blocks between 0 and 2% don't use the base block height for the stoploss, and instead
+        use 1% of the price as the base height.
+        """
+        height_percentage = position.base_block.height_percentage
+        stoploss_coeff = config.stoploss_coeff
+
+        sl_array_length = len(position.targets)
+
+        # In small blocks (0-2%) the base height is ignored and replaced by 1% of the
+        #  average base block price.
+        if 0 <= height_percentage < 2:
+            base_height = (
+                0.01 * (position.base_block.high + position.base_block.low) / 2
+            )
+
+        # In other cases the base_block height is used as the foundation for building targets.
+        else:
+            base_height = position.base_block.height
+
+        if position.type == "long":
+            sl_0 = position.entry - stoploss_coeff * base_height
+        else:
+            sl_0 = position.entry + stoploss_coeff * base_height
+
+        stoplosses = array([sl_0] * sl_array_length)
+
+        return stoplosses
+
+    @staticmethod
+    def small_blocks_refined_trailing_breakeven_t1(
+        position: Position,
+    ) -> NDArray[float64]:
+        """
+        Blocks between 0 and 2% don't use the base block height for the stoploss, and instead
+        use 1% of the price as the base height. This function also utilizes trailing-breakeven 
+        stoploss setup, moving the stoploss to the entry after the first target is hit.
+        """
+        height_percentage = position.base_block.height_percentage
+        stoploss_coeff = config.stoploss_coeff
+
+        sl_array_length = len(position.targets)
+
+        # In small blocks (0-2%) the base height is ignored and replaced by 1% of the
+        #  average base block price.
+        if 0 <= height_percentage < 2:
+            base_height = (
+                0.01 * (position.base_block.high + position.base_block.low) / 2
+            )
+
+        # In other cases the base_block height is used as the foundation for building targets.
+        else:
+            base_height = position.base_block.height
+
         if position.type == "long":
             sl_0 = position.entry - stoploss_coeff * base_height
         else:
