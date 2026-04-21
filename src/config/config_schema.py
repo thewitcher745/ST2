@@ -44,4 +44,5 @@ CONFIG_SCHEMA = {
     "clean": bool,
     "symbols_filename": str,
     "direction": str,
+    "cid": str,
 }

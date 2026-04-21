@@ -21,6 +21,8 @@ class TelegramClient:
         self._send_message_delay = config.telegram_api_send_message_delay
 
     def _get_channel_id(self):
+        if config.cid is not None:
+            return config.cid
         if not config.dev:
             return config.TG_PROD_CHANNEL_ID
         else:

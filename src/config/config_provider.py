@@ -80,6 +80,9 @@ class Config:
     clean: bool
     symbols_filename: str
     direction: str
+    cid: Optional[
+        str
+    ]  # The channel ID that overrides both TG_DEV_CHANNEL_ID and TG_PROD_CHANNEL_ID
 
     def _get_args(self):
         argument_parser = argparse.ArgumentParser("ST2 Runtime args")
@@ -98,7 +101,7 @@ class Config:
             "--dry",
             action="store_true",
             help="Doesn't post anything to any Telegram channel, for debugging purposes.",
-        )  # Only logs positions to console, not Telegram posting
+        )
         argument_parser.add_argument(
             "-c",
             "--clean",
@@ -110,14 +113,26 @@ class Config:
             "--symbols_filename",
             default="symbols.csv",
             help="Name of the CSV file containing the symbols in data/symbol_lists",
-        )  # Name of the .CSV file containing the symbols for the forward test
+        )
         argument_parser.add_argument(
             "-d",
             "--direction",
             choices=["long", "short", "both"],
             default=None,
             help="Limit the positions to one direction only.",
-        )  # Name of the .CSV file containing the symbols for the forward test
+        )
+        argument_parser.add_argument(
+            "-t",
+            "--timeframe",
+            choices=["5m", "15m", "30m", "1h", "4h"],
+            default="15m",
+            help="Override the timeframe config from the .env.config file.",
+        )
+        argument_parser.add_argument(
+            "--cid",
+            default=None,
+            help="Override the channel ID configurations from the .env.secret file.",
+        )
 
         return argument_parser.parse_args()
 
@@ -179,6 +194,9 @@ class Config:
             "--symbols_filename": "symbols_filename",
             "-d": "direction",
             "--direction": "direction",
+            "-t": "timeframe",
+            "--timeframe": "timeframe",
+            "--cid": "cid",
         }
 
         args_provided = set()
@@ -189,9 +207,16 @@ class Config:
         parts = []
 
         if "symbols_filename" in args_provided:
-            parts.append(self.symbols_filename.replace(".csv", ""))
+            parts.append("s-" + self.symbols_filename.replace(".csv", ""))
+
+        if "timeframe" in args_provided:
+            parts.append("t-" + self.timeframe)
 
         if "direction" in args_provided:
-            parts.append(self.direction)
+            parts.append("d-" + self.direction)
 
-        return "-".join(parts) if parts else "default"
+        if "cid" in args_provided:
+            if self.cid is not None:
+                parts.append("cid-" + self.cid)
+
+        return ".".join(parts) if parts else "default"
