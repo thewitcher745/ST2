@@ -25,7 +25,9 @@ class SignalManager:
             True  # Set to true since the first set of signals haven't been sent yet.
         )
         self._symbol = symbol
-        self._state_filepath = BASE_DIR / "data" / "state" / f"{symbol}.pickle"
+        self._state_filepath = (
+            BASE_DIR / "data" / "state" / config.run_id / f"{symbol}.pickle"
+        )
 
         self._load_state()
 

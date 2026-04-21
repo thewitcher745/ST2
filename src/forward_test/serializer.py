@@ -16,7 +16,7 @@ logger = logging.getLogger("[FTChartSerializer]")
 
 
 class FTChartSerializer:
-    def __init__(self, chart_data_dir: str = "data/chart"):
+    def __init__(self, chart_data_dir: str = f"data/chart/{config.run_id}"):
         self._chart_data_dir = chart_data_dir
         self._latest_packed_data: dict[str, bytes] = {}
         self._last_write_time: datetime | None = None
@@ -80,9 +80,10 @@ class FTChartSerializer:
         time has passed since the last write operation.
         """
         now = datetime.now()
-        if self._last_write_time is not None and (
-            now - self._last_write_time
-        ).total_seconds() < config.calc_interval:
+        if (
+            self._last_write_time is not None
+            and (now - self._last_write_time).total_seconds() < config.calc_interval
+        ):
             return
 
         self._pack_serialized_data(agg_klines_data, agg_blocks_list)

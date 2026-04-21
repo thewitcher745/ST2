@@ -17,7 +17,7 @@ def configure_logging():
 
     level = logging.INFO if not dev else logging.DEBUG
 
-    log_filepath = logs_dir / "forwardtest.log"
+    log_filepath = logs_dir / config.run_id / "forwardtest.log"
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)

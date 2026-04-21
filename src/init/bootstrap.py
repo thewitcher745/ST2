@@ -2,6 +2,10 @@ from pathlib import Path
 import shutil
 import logging
 
+from src.config import Config
+
+config = Config()
+
 logger = logging.getLogger("[init]")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -9,11 +13,11 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 STRUCTURE = {
     "directories": [
-        "data/klines",
-        "data/state",
-        "data/chart",
+        f"data/klines/{config.run_id}",
+        f"data/state/{config.run_id}",
+        f"data/chart/{config.run_id}",
         "data/symbol_lists",
-        "logs",
+        f"logs/{config.run_id}",
     ],
     "files": [
         (".env.secret", ".env.secret.template"),

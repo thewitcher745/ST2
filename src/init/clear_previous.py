@@ -7,6 +7,8 @@ import shutil
 
 from src.config import Config
 
+config = Config()
+
 
 def _clear_dir(dir: str) -> bool:
     """Clears a directory except .gitkeep, returns True if any files were removed."""
@@ -32,37 +34,37 @@ def _clear_dir(dir: str) -> bool:
 
 
 def _clear_state():
-    state_dir = "data/state"
+    state_dir = f"data/state/{config.run_id}"
 
     if _clear_dir(state_dir):
-        print("State directory cleared.")
+        print(f"State directory cleared for run ID {config.run_id}.")
     else:
         print("State directory not found or already empty.")
 
 
 def _clear_logs():
-    state_dir = "logs"
+    state_dir = f"logs/{config.run_id}"
 
     if _clear_dir(state_dir):
-        print("Logs directory cleared.")
+        print(f"Logs directory cleared for run ID {config.run_id}")
     else:
         print("Logs directory not found or already empty.")
 
 
 def _clear_klines():
-    state_dir = "data/klines"
+    state_dir = f"data/klines/{config.run_id}"
 
     if _clear_dir(state_dir):
-        print("KLines directory cleared.")
+        print(f"KLines directory cleared for run ID {config.run_id}")
     else:
         print("KLines directory not found or already empty.")
 
 
 def _clear_chart():
-    state_dir = "data/chart"
+    state_dir = f"data/chart/{config.run_id}"
 
     if _clear_dir(state_dir):
-        print("Chart data directory cleared.")
+        print(f"Chart data directory cleared for run ID {config.run_id}")
     else:
         print("Chart data directory not found or already empty.")
 

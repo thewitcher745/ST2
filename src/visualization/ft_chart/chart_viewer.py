@@ -6,10 +6,11 @@ import pandas as pd
 import numpy as np
 
 from .chart_widget import ChartWidget
+from src.config import Config
 
 
 class ChartWindow(QMainWindow):
-    def __init__(self, symbol: str, data_dir: str = "data/chart"):
+    def __init__(self, symbol: str, data_dir: str = f"data/chart/{Config().run_id}"):
         super().__init__()
         self.symbol = symbol
         self._data_dir = data_dir

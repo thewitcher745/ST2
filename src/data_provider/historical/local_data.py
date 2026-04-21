@@ -4,11 +4,16 @@ from pandas import DataFrame, read_feather
 
 from .binance_cache import BinanceDataProvider
 from .base import DataProvider
+from src.config import Config
+
+config = Config()
 
 
 class LocalDataProvider(DataProvider):
     def __init__(
-        self, cache_parent_dir="data/klines/", live_data_provider=BinanceDataProvider
+        self,
+        cache_parent_dir=f"data/klines/{config.run_id}",
+        live_data_provider=BinanceDataProvider,
     ):
         """
         Uses a live data provider to fetch data and caches it locally.

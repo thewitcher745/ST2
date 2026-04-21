@@ -1,4 +1,5 @@
 import argparse
+import sys
 from typing import Any, Optional
 from dotenv import dotenv_values
 
@@ -166,3 +167,31 @@ class Config:
             output += f"\t{key}: {value}\n"
 
         return output
+
+    @property
+    def run_id(self) -> str:
+        """
+        Creates a run_id based on the runtime arguments provided.
+        """
+        # Map of arg flags (both short and long) to their canonical names
+        arg_mapping = {
+            "-s": "symbols_filename",
+            "--symbols_filename": "symbols_filename",
+            "-d": "direction",
+            "--direction": "direction",
+        }
+
+        args_provided = set()
+        for arg in sys.argv:
+            if arg in arg_mapping:
+                args_provided.add(arg_mapping[arg])
+
+        parts = []
+
+        if "symbols_filename" in args_provided:
+            parts.append(self.symbols_filename.replace(".csv", ""))
+
+        if "direction" in args_provided:
+            parts.append(self.direction)
+
+        return "-".join(parts) if parts else "default"
