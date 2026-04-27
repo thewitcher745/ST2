@@ -3,12 +3,14 @@ from pandas import Timestamp
 from websockets.asyncio.client import connect
 from typing import AsyncGenerator
 import json
+import logging
 
 from ..abstract_tick_provider import AbstractTickProvider
 from ..tick import Tick
 from src.config import Config
 
 config = Config()
+logger = logging.getLogger("[TickProvider]")
 
 
 class ConnectionClosedCleanly(Exception):
@@ -47,10 +49,10 @@ class BinanceTickProvider(AbstractTickProvider):
         while True:
             self._listen_error = None
             try:
-                async with connect(
-                    url, proxy=config.proxy_server
-                ) as ws:
+                async with connect(url, proxy=config.proxy_server) as ws:
+                    logger.info(f"Websocket connection established: {url}")
                     self._times_retried = 0
+
                     async for message in ws:
                         data = json.loads(message)
                         k = data["data"]["k"]
@@ -76,11 +78,15 @@ class BinanceTickProvider(AbstractTickProvider):
                     raise ConnectionClosedCleanly
 
             except ConnectionClosedCleanly:
+                logger.info("Websocket connection closed.")
                 pass
 
             # If a more serious error occurs, wait some time before trying again.
             # If number of retries has exceeded max, break and raise an error.
             except Exception as e:
+                logger.error(
+                    f"Websocket connection failed, retrying in {config.ws_error_retry_interval} seconds."
+                )
                 self._listen_error = e
                 if self._times_retried > config.ws_error_max_retries:
                     break
