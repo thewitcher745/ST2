@@ -2,6 +2,7 @@ from pathlib import Path
 import pickle
 import logging
 from httpx import HTTPStatusError
+from datetime import datetime, timedelta
 
 from src.logic import Position
 from src.logic.blocks.block import Block
@@ -21,6 +22,8 @@ class SignalManager:
         self._current_active_blocks: set[Block] = set()
         # A dict of sent blocks' ID's and their message ID's, used for cancelations
         self._sent_blocks_message_ids: dict[str, int] = {}
+        # A list of omitted blocks, which are blocks that we decide will not be posted ever.
+        self._omitted_blocks: set[Block] = set()
         self._initial_run: bool = (
             True  # Set to true since the first set of signals haven't been sent yet.
         )
@@ -29,7 +32,27 @@ class SignalManager:
             BASE_DIR / "data" / "state" / config.run_id / f"{symbol}.pickle"
         )
 
+        # Bot launch time
+        self._signal_manager_launch_time = datetime.now()
+
+        # Timer for debug logging
+        self._last_debug_log_time: datetime | None = None
+        self._debug_log_interval = timedelta(minutes=30)
+
         self._load_state()
+
+    def _should_log_debug(self) -> bool:
+        """Check if enough time has passed since last debug log."""
+        now = datetime.now()
+        if self._last_debug_log_time is None:
+            self._last_debug_log_time = now
+            return True
+
+        if now - self._last_debug_log_time >= self._debug_log_interval:
+            self._last_debug_log_time = now
+            return True
+
+        return False
 
     def _save_state(self):
         """Save the current state to disk."""
@@ -74,11 +97,33 @@ class SignalManager:
         outdated_blocks = old_blocks_set - updated_blocks_set
 
         # Blocks that now exist but haven't been sent yet
-        pending_blocks = [
-            block
-            for block in updated_blocks_set
-            if block.id not in self._sent_blocks_message_ids.keys()
-        ]
+        pending_blocks = []
+        for block in updated_blocks_set:
+            if block.id in self._sent_blocks_message_ids.keys():
+                continue
+
+            position = block.positions[0]
+            if not self._may_become_sendable(position):
+                if block not in self._omitted_blocks:
+                    logger.debug(
+                        f"[{self._symbol}] Position with ID {position.id} will never be posted since it has been entered before."
+                    )
+                    self._omitted_blocks.add(block)
+                continue
+
+            pending_blocks.append(block)
+
+        # Debug logging with timer
+        if self._should_log_debug():
+            logger.debug(
+                f"[{self._symbol}] Outdated blocks: {[b.id for b in outdated_blocks]}"
+            )
+            logger.debug(
+                f"[{self._symbol}] Pending blocks: {[b.id for b in pending_blocks]}"
+            )
+            logger.debug(
+                f"[{self._symbol}] Already sent: {list(self._sent_blocks_message_ids.keys())}"
+            )
 
         # Only save the state if anything changes.
         _save_state_required = False
@@ -96,7 +141,7 @@ class SignalManager:
                     # Sometimes, if the message has been deleted or is otherwise unreachable, Telegram returns
                     # an error. This shouldn't happen, but it's safer to handle the error here as well.
                     logger.info(
-                        f"Canceling position with ID {position_to_cancel.id} for symbol {self._symbol}, reply_id {reply_id}"
+                        f"[{self._symbol}] Canceling position with ID {position_to_cancel.id} for symbol {self._symbol}, reply_id {reply_id}"
                     )
                     try:
                         # In a dry run nothing is sent to the channels.
@@ -110,7 +155,7 @@ class SignalManager:
                             and "message to be replied not found" in e.response.text
                         ):
                             logger.warning(
-                                f"Cannot cancel position {position_to_cancel.id} - original message deleted"
+                                f"[{self._symbol}] Cannot cancel position {position_to_cancel.id} - original message deleted"
                             )
 
                             del self._sent_blocks_message_ids[block.id]
@@ -142,7 +187,7 @@ class SignalManager:
 
             # In a dry run nothing is sent to the channels.
             logger.info(
-                f"Sending position with ID {position_to_send.id} for symbol {self._symbol}, message_id {message_id}"
+                f"[{self._symbol}] Sending position with ID {position_to_send.id}, message_id {message_id}"
             )
 
             assert isinstance(message_id, int)
@@ -154,6 +199,21 @@ class SignalManager:
 
         if _save_state_required:
             self._save_state()
+
+    def _may_become_sendable(self, position: Position) -> bool:
+        """
+        Returns True if the signal might still be sendable in the future.
+        """
+        # Don't keep the signal if it has been entered before the bot's launch time.
+        # TODO: Implement bounces. The logic should probably live somewhere around here.
+        if position.entered:
+            if (
+                position.entry_time is not None
+                and position.entry_time < self._signal_manager_launch_time
+            ):
+                return False
+
+        return True
 
     def _is_signal_sendable(self, position: Position, current_price: float):
         # Is the price close enough to the signal to post?
@@ -174,10 +234,6 @@ class SignalManager:
         else:
             if current_price >= position.stoplosses[0]:
                 return False
-
-        # Has the position been entered before? # TODO: Implement bounces. The logic should probably live somewhere around here.
-        if position.entered:
-            return False
 
         return True
 
