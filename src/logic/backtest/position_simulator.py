@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Literal, TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING, Optional
 from numpy import where, array
 from numpy.typing import NDArray
 
@@ -15,18 +15,40 @@ config = Config()
 
 class PositionSimulator:
     @staticmethod
-    def simulate(position: Position, klines_data: KLinesData):
-        """Main orchestrator for the simulation logic."""
-        PositionSimulator._calculate_temporal_events(position, klines_data)
+    def simulate(
+        position: Position,
+        klines_data: KLinesData,
+        search_start_index: Optional[int] = None,
+    ):
+        """
+        Main orchestrator for the simulation logic.
+
+        Args:
+            position: The position to simulate.
+            klines_data: The klines data to use for the simulation.
+            search_start_index: The index to start searching for events from.
+        """
+        PositionSimulator._calculate_temporal_events(
+            position, klines_data, search_start_index
+        )
         PositionSimulator._calculate_financial_outcome(position)
 
     @staticmethod
-    def _calculate_temporal_events(pos: Position, klines_data: KLinesData):
-        """Splits the event calculation into discrete steps."""
+    def _calculate_temporal_events(
+        pos: Position, klines_data: KLinesData, search_start_index: Optional[int]
+    ):
+        """
+        Splits the event calculation into discrete steps.
+
+        Args:
+            pos: The position to calculate events for.
+            klines_data: The klines data to use for the simulation.
+            search_start_index: The index to start searching for events from.
+        """
         # 1. Prepare data windows
         # Target lows and target highs are used to find the targets
         entry_lows, entry_highs, index_offset = PositionSimulator._get_window_slices(
-            pos, klines_data
+            pos, klines_data, search_start_index
         )
 
         # 2. Find Entry index
@@ -61,14 +83,21 @@ class PositionSimulator:
 
     @staticmethod
     def _get_window_slices(
-        pos: Position, klines_data: KLinesData
+        pos: Position, klines_data: KLinesData, search_start_index: Optional[int]
     ) -> tuple[NDArray, NDArray, int]:
         """
         Extracts the relevant price slices based on block indices. Returns two arrays, for finding the
         entry (start time of the block to the end time), and an int, representing the start index of the block by which we
         offset all indices found.
+
+        Args:
+            pos: The position to calculate events for.
+            klines_data: The klines data to use for the simulation.
+            search_start_index: The index to start searching for events from.
         """
         index_offset = pos.base_block.start_index + 1
+        if search_start_index is not None:
+            index_offset = search_start_index + 1
         end_index = pos.base_block.end_index + 1 if pos.base_block.end_index else None
 
         return (
@@ -229,7 +258,7 @@ class PositionSimulator:
     def _process_stoplosses(
         pos: Position,
         klines_data: KLinesData,
-        stoploss_check_windows: list[tuple[int, int, Literal[-1, 1, 0]]],
+        stoploss_check_windows: list[tuple[int, int, Literal[-1, 1, 0, -2]]],
         stoplosses_to_check: list[float],
     ):
         """
@@ -368,6 +397,4 @@ class PositionSimulator:
         else:
             pos.net_profit = total_cap - delta
 
-        pos.percent_profit = (
-            pos.net_profit / config.usdt_per_trade
-        ) * 100
+        pos.percent_profit = (pos.net_profit / config.usdt_per_trade) * 100

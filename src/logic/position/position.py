@@ -13,7 +13,7 @@ config = Config()
 
 
 class Position:
-    def __init__(self, base_block: Block):
+    def __init__(self, base_block: Block, bounce_id: int = 0):
         self.base_block = base_block
         self.start_time = base_block.start_time
         self.type: Literal["short", "long"] = "long"
@@ -43,10 +43,10 @@ class Position:
         self.highest_target: int = 0
         self.full_target: bool = False
         # Indicates which bounce of the base block this position belongs to.
-        self.bounce = 0
+        self.bounce_id = bounce_id
 
         # This ID is only used to compare positions
-        self.id = self.base_block.id + f"_{self.bounce}"
+        self.id = self.base_block.id + f"_{self.bounce_id}"
 
         # Add the position to its base block's positions list
         self.base_block.positions.append(self)

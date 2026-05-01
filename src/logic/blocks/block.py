@@ -56,6 +56,11 @@ class Block(ABC):
     def __hash__(self) -> int:
         return hash(self.id)
 
+    @property
+    def bounces(self) -> int:
+        """Number of positions generated from the block."""
+        return len(self.positions)
+
     def check_end_candle(self, klines_df_close_array: NDArray):
         """
         This method checks if the price has closed below/above the invalidation price.
