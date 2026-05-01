@@ -182,7 +182,7 @@ class PositionSimulator:
     def _form_stoploss_check_windows(
         pos: Position,
         klines_data: KLinesData,
-    ) -> tuple[list[tuple[int, int, Literal[0, 1, -1]]], list[float]] | None:
+    ) -> tuple[list[tuple[int, int, Literal[0, 1, -1, -2]]], list[float]] | None:
         """
         Returns a list of tuples containing window start and end indexes, and a list of stoplosses to check
         for in each of those windows, condensed into a tuple.
@@ -190,14 +190,14 @@ class PositionSimulator:
         The window tuple also includes an int as a third element which represents which window type it is.
         0 means its a window between the entry and the first target. 1 means a window between two targets, and
         -1 means a window between the non-final target and the last candle. The window between the entry and the
-        last candle of the dataframe is also denoted as -1.
+        last candle of the dataframe is denoted as -2.
         """
         if pos.entry_index is None:
             return None
 
         # stoplosses_to_check and stoploss_search_windows are some lists to store the search window indexes for easier and more understandable iteration
         stoplosses_to_check: list[float] = [pos.stoplosses[0]]
-        stoploss_search_windows: list[tuple[int, int, Literal[0, 1, -1]]]
+        stoploss_search_windows: list[tuple[int, int, Literal[0, 1, -1, -2]]]
         if pos.highest_target > 0:
             stoploss_search_windows = [
                 (pos.entry_index, int(pos.target_indices[0] + 1), 0)
@@ -205,7 +205,6 @@ class PositionSimulator:
 
             # Add the search windows between the targets
             idx = 0
-            stoploss = pos.stoplosses[0]
             for idx, stoploss in enumerate(pos.stoplosses[1 : pos.highest_target], 1):
                 stoploss_search_windows.append(
                     (pos.target_indices[idx - 1], pos.target_indices[idx] + 1, 1)
@@ -214,6 +213,7 @@ class PositionSimulator:
 
             # Add the window between the highest (non-full) target and the rest of the candles
             if pos.highest_target != len(pos.targets):
+                stoploss = pos.stoplosses[pos.highest_target]
                 stoploss_search_windows.append(
                     (pos.target_indices[idx - 1], klines_data.length, -1)
                 )
@@ -221,7 +221,7 @@ class PositionSimulator:
 
         # If the highest target is 0, search from the entry to the end of the klines_df
         else:
-            stoploss_search_windows = [(pos.entry_index, klines_data.length, -1)]
+            stoploss_search_windows = [(pos.entry_index, klines_data.length, -2)]
 
         return stoploss_search_windows, stoplosses_to_check
 
@@ -333,9 +333,12 @@ class PositionSimulator:
 
                 break
             # If no stop is found in the current window, that means one more target was safely
-            # cleared without a stoploss.
+            # cleared without a stoploss. This isn't performed if the window we just checked went
+            # from the entry of the position to the last candle of the dataframe, which means a
+            # window_type == -2
             else:
-                pos.highest_target += 1
+                if window_type != -2:
+                    pos.highest_target += 1
 
             # If we have hit as many targets as the position has without hitting any SL, register
             # a FULL_TARGET exit type.
