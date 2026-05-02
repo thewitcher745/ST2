@@ -1,4 +1,3 @@
-from datetime import timedelta
 import time
 from typing import Optional, cast
 from PyQt6 import QtCore, QtGui
@@ -78,8 +77,9 @@ class ChartWidget(QWidget):
 
         return False
 
-    def _apply_auto_zoom(self):
+    def apply_auto_zoom(self):
         """Checks auto-zoom conditions and applies it if applicable."""
+
         if (
             self.indices is None
             or self.highs is None
@@ -186,7 +186,7 @@ class ChartWidget(QWidget):
         self._draw_blocks(blocks, fallback_end_index=self.indices[-1])
 
         if self._should_auto_zoom():
-            self._apply_auto_zoom()
+            self.apply_auto_zoom()
 
     def _draw_klines(
         self,
