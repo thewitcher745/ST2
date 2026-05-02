@@ -31,6 +31,7 @@ class FTChartSerializer:
         Takes KLinesData and blocks list for a symbol and serializes it to a dict.
         """
         chart_data = {"blocks": [], "klines": None}
+        chart_data["last_write"] = self._last_write_time
         chart_data["klines"] = klines_data.get_dict_format()
 
         for block in blocks_list:

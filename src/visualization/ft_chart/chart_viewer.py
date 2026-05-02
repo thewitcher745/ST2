@@ -201,6 +201,7 @@ End time: {pd.Timestamp(block["end_time"]) if block["end_time"] else "Active"}""
             # Extract info
             klines_data = data["klines"]
             blocks = data["blocks"]
+            last_write = pd.Timestamp(data["last_write"])
 
             times = np.array(klines_data["time"])
             closes = np.array(klines_data["close"])
@@ -216,7 +217,7 @@ Candles: {n_candles}
 Blocks: {n_blocks}
 Last close: {last_close}
 Last candle time: {last_time}
-Last update: {datetime.now()}"""
+Last update: {last_write}"""
             self._info_label.setText(info)
             self._chart_widget.update_chart(klines_data, blocks)
 
