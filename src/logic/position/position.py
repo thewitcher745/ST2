@@ -57,6 +57,9 @@ class Position:
     def __eq__(self, other) -> bool:
         return self.id == other.id
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
     def setup_targets(self):
         """
         This method uses an external module to set up the targets.

@@ -22,7 +22,7 @@ logger = logging.getLogger("[ForwardTest]")
 class ForwardTest:
     def __init__(self, symbols_filename: str):
         self._symbols = self._load_symbols(f"data/symbol_lists/{symbols_filename}")
-        
+
         logger.info(f"Added symbols {self._symbols}")
 
         # Shared across all symbols
@@ -89,10 +89,12 @@ class ForwardTest:
 
     async def _process_signals(self, symbol: str):
         """Finds which signals need cancelling and which ones need posting for a given signal."""
-        updated_blocks = self.block_managers[symbol].all_active_blocks_aslist
+        updated_positions_list = [
+            p for p in self.position_managers[symbol].positions_aslist if not p.entered
+        ]
         current_price = self._current_price[symbol]
         await self.signal_managers[symbol].process_signals(
-            updated_blocks, current_price
+            updated_positions_list, current_price
         )
 
     async def run(self) -> None:
