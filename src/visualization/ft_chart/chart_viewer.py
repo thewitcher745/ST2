@@ -25,13 +25,13 @@ class ChartWindow(QMainWindow):
 
         self._info_label = None
         self._cursor_label = None
+        self._block_label = None
 
         self._chart_widget = ChartWidget()
 
         # Central widget with layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        # self.setWindowTitle(f"Live Chart - {symbol}")
         self.resize(1360, 768)
 
         layout = QVBoxLayout(central_widget)
@@ -47,19 +47,32 @@ class ChartWindow(QMainWindow):
     def _init_top_section(self) -> QHBoxLayout:
         top_section_layout = QHBoxLayout()
 
-        top_section_layout.addLayout(self._init_menus())
-        top_section_layout.addLayout(self._init_labels())
+        # Left side: menus + file info
+        left_layout = QVBoxLayout()
+        left_layout.addLayout(self._init_menus())
+        left_layout.addWidget(self._init_file_info_label())
+        left_layout.addStretch()
+
+        # Right side: block + cursor info
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(self._init_block_label())
+        right_layout.addWidget(self._init_cursor_label())
+        right_layout.addStretch()
+
+        top_section_layout.addLayout(left_layout)
+        top_section_layout.addStretch()
+        top_section_layout.addLayout(right_layout)
 
         return top_section_layout
 
     def _init_menus(self) -> QVBoxLayout:
         menus_layout = QVBoxLayout()
         menus_layout.setSpacing(5)
-        
+
         # Directory dropdown with label
         dir_label = QLabel("Run ID:")
         menus_layout.addWidget(dir_label)
-        
+
         dirs = os.listdir("data/chart")
         self.dir_menu = ComboBox(items=dirs)
         self.dir_menu.currentIndexChanged.connect(self._on_dir_change)
@@ -71,7 +84,7 @@ class ChartWindow(QMainWindow):
         # Symbol dropdown with label
         symbol_label = QLabel("Symbol:")
         menus_layout.addWidget(symbol_label)
-        
+
         self.symbol_menu = QComboBox()
         self.symbol_menu.currentIndexChanged.connect(self._on_symbol_change)
         menus_layout.addWidget(self.symbol_menu)
@@ -80,9 +93,45 @@ class ChartWindow(QMainWindow):
         if dirs:
             self._update_symbol_menu(dirs[0])
 
-        menus_layout.addStretch()
-
         return menus_layout
+
+    def _init_file_info_label(self) -> QLabel:
+        """Label showing file and data statistics."""
+        placeholder_text = """Symbol: -
+Candles: -
+Blocks: -
+Last close: -
+Last candle time: -
+Last update: -"""
+
+        self._info_label = QLabel(placeholder_text, self)
+        return self._info_label
+
+    def _init_block_label(self) -> QLabel:
+        """Label showing clicked block information."""
+        placeholder_text = """Block ID: -
+Type: -
+Direction: -
+Low: -
+High: -
+Start time: -
+End time: -"""
+
+        self._block_label = QLabel(placeholder_text, self)
+        return self._block_label
+
+    def _init_cursor_label(self) -> QLabel:
+        """Label showing cursor position and candle data."""
+        placeholder_text = """Index: -
+Time: -
+Open: -
+High: -
+Low: -
+Close: -"""
+
+        self._cursor_label = QLabel(placeholder_text, self)
+        self._chart_widget.cursor_moved.connect(self._cursor_label.setText)
+        return self._cursor_label
 
     def _on_dir_change(self, index):
         selected_dir = self.dir_menu.currentText()
@@ -115,40 +164,6 @@ class ChartWindow(QMainWindow):
 
         return os.path.join("data", "chart", self._filedir, self._filename)
 
-    def _init_labels(self) -> QVBoxLayout:
-
-        placeholder_info_text = f"""
-Symbol: {self._symbol}
-Candles: 
-Blocks: 
-Last close:
-Last candle time:
-Last update: {datetime.now()}
-            """
-
-        placeholder_cursor_text = """
-Index:
-Time:
-O:
-H:
-L:
-C:"""
-
-        # Horizontal layout for the two labels
-        labels_layout = QVBoxLayout()
-
-        # Label showing updates
-        self._info_label = QLabel(placeholder_info_text, self)
-        labels_layout.addWidget(self._info_label)
-
-        # Label showing the candle the cursor is on
-
-        self._cursor_label = QLabel(placeholder_cursor_text, self)
-        labels_layout.addWidget(self._cursor_label)
-        self._chart_widget.cursor_moved.connect(self._cursor_label.setText)
-
-        return labels_layout
-
     def update_data(self):
         if self._filepath is None:
             return
@@ -178,14 +193,12 @@ C:"""
             last_time = pd.Timestamp(times[-1])
 
             # Display in label
-            info = f"""
-Symbol: {self._symbol}
+            info = f"""Symbol: {self._symbol}
 Candles: {n_candles}
 Blocks: {n_blocks}
 Last close: {last_close}
 Last candle time: {last_time}
-Last update: {datetime.now()}
-            """
+Last update: {datetime.now()}"""
             self._info_label.setText(info)
             self._chart_widget.update_chart(klines_data, blocks)
 
