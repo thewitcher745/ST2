@@ -35,6 +35,7 @@ class FTChartSerializer:
 
         for block in blocks_list:
             serialized_block_data = {
+                "id": block.id,
                 "type": block.block_type,
                 "direction": block.direction,
                 "start_index": block.start_index,

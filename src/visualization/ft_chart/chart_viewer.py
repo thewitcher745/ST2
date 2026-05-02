@@ -44,6 +44,8 @@ class ChartWindow(QMainWindow):
         self.timer.timeout.connect(self.update_data)
         self.timer.start(2000)
 
+        self._chart_widget.block_clicked.connect(self._on_block_clicked)
+
     def _init_top_section(self) -> QHBoxLayout:
         top_section_layout = QHBoxLayout()
 
@@ -55,8 +57,8 @@ class ChartWindow(QMainWindow):
 
         # Right side: block + cursor info
         right_layout = QVBoxLayout()
-        right_layout.addWidget(self._init_block_label())
         right_layout.addWidget(self._init_cursor_label())
+        right_layout.addWidget(self._init_block_label())
         right_layout.addStretch()
 
         top_section_layout.addLayout(left_layout)
@@ -105,6 +107,7 @@ Last candle time: -
 Last update: -"""
 
         self._info_label = QLabel(placeholder_text, self)
+        self._info_label.setFixedWidth(300)
         return self._info_label
 
     def _init_block_label(self) -> QLabel:
@@ -118,6 +121,7 @@ Start time: -
 End time: -"""
 
         self._block_label = QLabel(placeholder_text, self)
+        self._block_label.setFixedWidth(300)
         return self._block_label
 
     def _init_cursor_label(self) -> QLabel:
@@ -130,6 +134,7 @@ Low: -
 Close: -"""
 
         self._cursor_label = QLabel(placeholder_text, self)
+        self._cursor_label.setFixedWidth(300)
         self._chart_widget.cursor_moved.connect(self._cursor_label.setText)
         return self._cursor_label
 
@@ -149,6 +154,19 @@ Close: -"""
         files = os.listdir(f"data/chart/{directory}")
         symbols = [f.replace(".pack", "") for f in files]
         self.symbol_menu.addItems(symbols)
+
+    def _on_block_clicked(self, block: dict):
+        if self._block_label is None:
+            return
+
+        info = f"""Block ID: {block["id"]}
+Type: {block["type"]}
+Direction: {block["direction"]}
+Low: {block["low"]}
+High: {block["high"]}
+Start time: {pd.Timestamp(block["start_time"])}
+End time: {pd.Timestamp(block["end_time"]) if block["end_time"] else "Active"}"""
+        self._block_label.setText(info)
 
     @property
     def _filename(self) -> str:
@@ -202,8 +220,7 @@ Last update: {datetime.now()}"""
             self._info_label.setText(info)
             self._chart_widget.update_chart(klines_data, blocks)
 
-        except FileNotFoundError as e:
-            print(e)
+        except FileNotFoundError:
             self._info_label.setText(f"Waiting for data file: {self._filename}")
         except Exception as e:
             self._info_label.setText(f"Error: {str(e)}")

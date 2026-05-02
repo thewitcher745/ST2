@@ -1,5 +1,5 @@
 import time
-from typing import Optional, cast
+from typing import Any, Optional, cast
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from pandas import Timestamp
@@ -9,6 +9,7 @@ import numpy as np
 
 class ChartWidget(QWidget):
     cursor_moved = QtCore.pyqtSignal(str)
+    block_clicked = QtCore.pyqtSignal(dict)
 
     def __init__(self, chart_title: str = "Forward test live chart"):
         super().__init__()
@@ -50,7 +51,8 @@ class ChartWidget(QWidget):
 
         # Connect mouse move signal
         scene = cast(pg.GraphicsScene, self.widget.scene())
-        scene.sigMouseMoved.connect(self.on_mouse_move)
+        scene.sigMouseMoved.connect(self._on_mouse_move)
+        scene.sigMouseClicked.connect(self._on_mouse_click)
 
         if self.widget.plotItem is not None:
             view_box: Optional[pg.ViewBox] = self.widget.plotItem.vb
@@ -109,7 +111,7 @@ class ChartWidget(QWidget):
         self.widget.setXRange(x_min, x_max)
         self.widget.setYRange(y_min, y_max)
 
-    def on_mouse_move(self, pos):
+    def _on_mouse_move(self, pos):
         if (
             self.times is None
             or self.opens is None
@@ -153,6 +155,47 @@ class ChartWidget(QWidget):
         self.y_value_label.setText(f"{y:.6f}")
         self.y_value_label.setPos(x_max, y)
 
+    def _on_mouse_click(self, event):
+        pos = event.scenePos()
+        if self.widget.plotItem is None:
+            return
+
+        view_box = self.widget.plotItem.vb
+        if view_box is None:
+            return
+
+        mouse_point = view_box.mapSceneToView(pos)
+        x = mouse_point.x()
+        y = mouse_point.y()
+
+        # Find clicked block
+        clicked_block = self._find_block_at_position(x, y)
+        if clicked_block:
+            self.block_clicked.emit(clicked_block)
+
+    def _find_block_at_position(self, x, y) -> dict[Any, Any] | None:
+        if not hasattr(self, "blocks"):
+            return None
+
+        if self.indices is None:
+            return None
+
+        for block in self.blocks:
+            start_index = block["start_index"]
+            end_index = (
+                block["end_index"]
+                if block["end_index"] is not None
+                else self.indices[-1]
+            )
+            low = block["low"]
+            high = block["high"]
+
+            # Check if click is inside block rectangle
+            if start_index <= x <= end_index and low <= y <= high:
+                return block
+
+        return None
+
     def update_chart(
         self,
         klines_data: dict,
@@ -169,6 +212,8 @@ class ChartWidget(QWidget):
         self.lows = np.array(klines_data["low"])
         self.closes = np.array(klines_data["close"])
         self.indices = np.arange(len(self.times))
+
+        self.blocks = blocks
 
         # Only show last N candles
         full_length = len(self.times)
