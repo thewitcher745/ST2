@@ -22,6 +22,10 @@ class ChartWidget(QWidget):
         self._auto_zoom_timeout = 60  # Seconds before resuming auto-zoom
         self._last_manual_zoom = None
 
+        self._clicked_block_ids: set[str] = set()
+        self._block_highlight_items: list = []
+        self._block_rectangles: list = []
+
         layout = QVBoxLayout(self)
         layout.addWidget(self.widget)
         layout.setContentsMargins(0, 0, 0, 0)  # No margins
@@ -171,6 +175,12 @@ class ChartWidget(QWidget):
         # Find clicked block
         clicked_block = self._find_block_at_position(x, y)
         if clicked_block:
+            if clicked_block["id"] in self._clicked_block_ids:
+                self._clicked_block_ids.remove(clicked_block["id"])
+            else:
+                self._clicked_block_ids.add(clicked_block["id"])
+
+            self._redraw_blocks()
             self.block_clicked.emit(clicked_block)
 
     def _find_block_at_position(self, x, y) -> dict[Any, Any] | None:
@@ -298,12 +308,25 @@ class ChartWidget(QWidget):
         fallback_end_index is the end index assigned to a block if it has no end_index, aka if it
         hasn't ended.
         """
+        # Clear previous highlight items
+        for item in self._block_highlight_items:
+            self.widget.removeItem(item)
+        self._block_highlight_items.clear()
+        
+        # Clear previous block rectangles
+        for rect in self._block_rectangles:
+            self.widget.removeItem(rect)
+        self._block_rectangles.clear()
+
         for block in blocks:
             end_index = block["end_index"]
             if end_index is None:
                 end_index = fallback_end_index
 
             start_index = block["start_index"]
+            base_candle_index = block.get("base_candle_index", start_index)
+            block_id = block.get("id", "")
+            is_clicked = block_id in self._clicked_block_ids
 
             high = block["high"]
             low = block["low"]
@@ -317,14 +340,87 @@ class ChartWidget(QWidget):
             # Determine color based on direction
             if block["direction"] == "bullish":
                 fill_color = QtGui.QColor(38, 166, 154, 50)  # Green with alpha=50
+                line_color = QtGui.QColor(38, 166, 154, 150)  # Green for line
+                stroke_color = QtGui.QColor(38, 166, 154, 200)  # Green stroke
             else:  # bearish
                 fill_color = QtGui.QColor(239, 83, 80, 50)  # Red with alpha=50
+                line_color = QtGui.QColor(239, 83, 80, 150)  # Red for line
+                stroke_color = QtGui.QColor(239, 83, 80, 200)  # Red stroke
 
             rect.setBrush(QtGui.QBrush(fill_color))
-            rect.setPen(QtGui.QColor(0, 0, 0, 0))
-
+            
+            # Add stroke if this block is clicked
+            if is_clicked:
+                rect.setPen(pg.mkPen(color=stroke_color, width=2))
+            else:
+                rect.setPen(QtGui.QColor(0, 0, 0, 0))
+            
+            # Store rectangle for later removal
+            self._block_rectangles.append(rect)
             self.widget.addItem(rect)
-    
+
+            # Draw line from base candle to block start
+            # Only draw for clicked block
+            if (
+                is_clicked
+                and base_candle_index != start_index
+                and self.highs is not None
+                and self.lows is not None
+                and self.indices is not None
+            ):
+                # Get the high/low of the base candle
+                converted_index = base_candle_index - self.indices[0]
+
+                # If  he converted index is less than zero, it means the block's base candle was before the candle range.
+                if converted_index < 0:
+                    continue
+
+                base_candle_high = self.highs[converted_index]
+                base_candle_low = self.lows[converted_index]
+
+                # Draw a stroke for the blocks that are clicked
+                stroke_rect = pg.QtWidgets.QGraphicsRectItem(
+                    QtCore.QRectF(start_index, low, width, height)
+                )
+                stroke_rect.setPen(pg.mkPen(color=stroke_color, width=2))
+                self._block_highlight_items.append(stroke_rect)
+                self.widget.addItem(stroke_rect)
+
+                # Connect from base candle to block
+                line_low = pg.PlotDataItem(
+                    x=[base_candle_index, start_index],
+                    y=[base_candle_low, base_candle_low],
+                    pen=pg.mkPen(
+                        color=line_color, width=1, style=QtCore.Qt.PenStyle.DashLine
+                    ),
+                    connect="all",
+                )
+                line_high = pg.PlotDataItem(
+                    x=[base_candle_index, start_index],
+                    y=[base_candle_high, base_candle_high],
+                    pen=pg.mkPen(
+                        color=line_color, width=1, style=QtCore.Qt.PenStyle.DashLine
+                    ),
+                    connect="all",
+                )
+
+                # Store highlight items so we can remove them later
+                self._block_highlight_items.append(line_low)
+                self._block_highlight_items.append(line_high)
+                self.widget.addItem(line_low)
+                self.widget.addItem(line_high)
+
+    def _redraw_blocks(self):
+        """Redraws blocks to update highlighting."""
+        if (
+            hasattr(self, "blocks")
+            and self.blocks is not None
+            and self.indices is not None
+        ):
+            # Remove all block rectangles and redraw
+            # This is a bit inefficient but ensures proper highlighting
+            self._draw_blocks(self.blocks, fallback_end_index=self.indices[-1])
+
     def _draw_zigzag(self, zigzag: list[dict]):
         """
         Draws zigzag lines connecting pivot points.
@@ -332,17 +428,17 @@ class ChartWidget(QWidget):
         """
         if not zigzag or len(zigzag) < 2:
             return
-        
+
         # Extract x and y coordinates
         x_coords = np.array([point["index"] for point in zigzag])
         y_coords = np.array([point["value"] for point in zigzag])
-        
+
         # Create line plot
         zigzag_line = pg.PlotDataItem(
             x=x_coords,
             y=y_coords,
             pen=pg.mkPen(color=(255, 255, 255, 180), width=1.5),
-            connect="all"
+            connect="all",
         )
-        
+
         self.widget.addItem(zigzag_line)

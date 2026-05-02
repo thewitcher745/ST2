@@ -38,6 +38,7 @@ class FTChartSerializer:
         for block in blocks_list:
             serialized_block_data = {
                 "id": block.id,
+                "base_candle_index": block.base_candle_index,
                 "type": block.block_type,
                 "direction": block.direction,
                 "start_index": block.start_index,
@@ -49,14 +50,16 @@ class FTChartSerializer:
             }
 
             chart_data["blocks"].append(serialized_block_data)
-        
+
         # Serialize zigzag data
         if zigzag_df is not None and len(zigzag_df) > 0:
             for _, row in zigzag_df.iterrows():
-                chart_data["zigzag"].append({
-                    "index": int(row["kline_index"]),
-                    "value": float(row["pivot_value"])
-                })
+                chart_data["zigzag"].append(
+                    {
+                        "index": int(row["kline_index"]),
+                        "value": float(row["pivot_value"]),
+                    }
+                )
 
         return chart_data
 
@@ -77,9 +80,9 @@ class FTChartSerializer:
         """
         for symbol in agg_klines_data.keys():
             serialized_ft_data = self._serialize_for_symbol(
-                agg_klines_data[symbol], 
+                agg_klines_data[symbol],
                 agg_blocks_list[symbol],
-                agg_zigzag_dfs.get(symbol)
+                agg_zigzag_dfs.get(symbol),
             )
             self._latest_packed_data[symbol] = packb(
                 serialized_ft_data, option=OPT_SERIALIZE_NUMPY
