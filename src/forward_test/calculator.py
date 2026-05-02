@@ -3,6 +3,7 @@ Handles initial calculation and recalculations.
 """
 
 from datetime import datetime
+from typing import Any
 
 from src.data_provider import KLinesData
 from src.logic import BlockManager, MSBIdentifier, PositionManager, Zigzag
@@ -14,6 +15,7 @@ config = Config()
 class StructureCalculator:
     def __init__(self):
         self._last_calc_time: datetime | None = None
+        self.zigzag_dfs: dict[str, Any] = {}  # Store zigzag dataframes per symbol
 
     def _update_last_calc_time(self):
         self._last_calc_time = datetime.now()
@@ -25,6 +27,7 @@ class StructureCalculator:
         block_manager: BlockManager,
         position_manager: PositionManager,
         msb_identifier: MSBIdentifier,
+        symbol: str,
     ) -> None:
         """
         Recalculates the logic of the strategy with a given symbol. The data is fetched from the
@@ -38,6 +41,7 @@ class StructureCalculator:
             return
 
         zigzag_df = zigzag.calculate(klines_data)
+        self.zigzag_dfs[symbol] = zigzag_df
 
         msbs_df = msb_identifier.find_all_matches(
             zigzag_df["structure"].tolist(),

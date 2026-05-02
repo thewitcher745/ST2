@@ -1,4 +1,3 @@
-from datetime import datetime
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -201,6 +200,7 @@ End time: {pd.Timestamp(block["end_time"]) if block["end_time"] else "Active"}""
             # Extract info
             klines_data = data["klines"]
             blocks = data["blocks"]
+            zigzag = data.get("zigzag", [])
             last_write = pd.Timestamp(data["last_write"])
 
             times = np.array(klines_data["time"])
@@ -219,7 +219,7 @@ Last close: {last_close}
 Last candle time: {last_time}
 Last update: {last_write}"""
             self._info_label.setText(info)
-            self._chart_widget.update_chart(klines_data, blocks)
+            self._chart_widget.update_chart(klines_data, blocks, zigzag)
 
         except FileNotFoundError:
             self._info_label.setText(f"Waiting for data file: {self._filename}")

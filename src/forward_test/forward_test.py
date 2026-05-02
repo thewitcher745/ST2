@@ -82,6 +82,7 @@ class ForwardTest:
             self.block_managers[symbol],
             self.position_managers[symbol],
             self.msb_identifier,
+            symbol,
         )
 
     def _update_current_price(self, symbol: str, current_price: float):
@@ -155,6 +156,10 @@ class ForwardTest:
         Writes serialized data required for charting to a file every calc_interval seconds.
         """
         agg_blocks_list = {}
+        agg_zigzag_dfs = {}
         for symbol in self._symbols:
             agg_blocks_list[symbol] = self.block_managers[symbol].all_blocks_aslist
-        self.chart_serializer.write(self.sync_manager.klines_data, agg_blocks_list)
+            agg_zigzag_dfs[symbol] = self.structure_calculator.zigzag_dfs.get(symbol)
+        self.chart_serializer.write(
+            self.sync_manager.klines_data, agg_blocks_list, agg_zigzag_dfs
+        )

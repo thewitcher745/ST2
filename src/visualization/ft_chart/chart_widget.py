@@ -200,6 +200,7 @@ class ChartWidget(QWidget):
         self,
         klines_data: dict,
         blocks: list[dict],
+        zigzag: list[dict] = [],
         max_visible=1000,
     ):
         """Draws KLines and blocks from passed-down data."""
@@ -229,6 +230,7 @@ class ChartWidget(QWidget):
 
         self._draw_klines(self.indices, self.opens, self.highs, self.lows, self.closes)
         self._draw_blocks(blocks, fallback_end_index=self.indices[-1])
+        self._draw_zigzag(zigzag)
 
         if self._should_auto_zoom():
             self.apply_auto_zoom()
@@ -322,3 +324,25 @@ class ChartWidget(QWidget):
             rect.setPen(QtGui.QColor(0, 0, 0, 0))
 
             self.widget.addItem(rect)
+    
+    def _draw_zigzag(self, zigzag: list[dict]):
+        """
+        Draws zigzag lines connecting pivot points.
+        zigzag is a list of dicts with 'index' and 'value' keys.
+        """
+        if not zigzag or len(zigzag) < 2:
+            return
+        
+        # Extract x and y coordinates
+        x_coords = np.array([point["index"] for point in zigzag])
+        y_coords = np.array([point["value"] for point in zigzag])
+        
+        # Create line plot
+        zigzag_line = pg.PlotDataItem(
+            x=x_coords,
+            y=y_coords,
+            pen=pg.mkPen(color=(255, 255, 255, 180), width=1.5),
+            connect="all"
+        )
+        
+        self.widget.addItem(zigzag_line)

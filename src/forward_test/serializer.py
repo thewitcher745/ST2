@@ -4,6 +4,7 @@ for charting.
 """
 
 from datetime import datetime
+from typing import Any
 from ormsgpack import packb, OPT_SERIALIZE_NUMPY
 import logging
 
@@ -25,12 +26,12 @@ class FTChartSerializer:
         self._last_write_time = datetime.now()
 
     def _serialize_for_symbol(
-        self, klines_data: LiveKLinesData, blocks_list: list[Block]
+        self, klines_data: LiveKLinesData, blocks_list: list[Block], zigzag_df
     ):
         """
         Takes KLinesData and blocks list for a symbol and serializes it to a dict.
         """
-        chart_data = {"blocks": [], "klines": None}
+        chart_data = {"blocks": [], "klines": None, "zigzag": []}
         chart_data["last_write"] = self._last_write_time
         chart_data["klines"] = klines_data.get_dict_format()
 
@@ -48,6 +49,14 @@ class FTChartSerializer:
             }
 
             chart_data["blocks"].append(serialized_block_data)
+        
+        # Serialize zigzag data
+        if zigzag_df is not None and len(zigzag_df) > 0:
+            for _, row in zigzag_df.iterrows():
+                chart_data["zigzag"].append({
+                    "index": int(row["kline_index"]),
+                    "value": float(row["pivot_value"])
+                })
 
         return chart_data
 
@@ -55,6 +64,7 @@ class FTChartSerializer:
         self,
         agg_klines_data: dict[str, LiveKLinesData],
         agg_blocks_list: dict[str, list[Block]],
+        agg_zigzag_dfs: dict[str, Any],
     ):
         """
         Serializes the KLinesData and blocks list of the forward test using msgpack (compressed binary)
@@ -63,10 +73,13 @@ class FTChartSerializer:
         Args:
             agg_klines_data: A symbol-separated dict of KLinesData.
             agg_blocks_list: A symbol-separated dict of list of Blocks (Not separated by direction)
+            agg_zigzag_dfs: A symbol-separated dict of zigzag DataFrames
         """
         for symbol in agg_klines_data.keys():
             serialized_ft_data = self._serialize_for_symbol(
-                agg_klines_data[symbol], agg_blocks_list[symbol]
+                agg_klines_data[symbol], 
+                agg_blocks_list[symbol],
+                agg_zigzag_dfs.get(symbol)
             )
             self._latest_packed_data[symbol] = packb(
                 serialized_ft_data, option=OPT_SERIALIZE_NUMPY
@@ -76,6 +89,7 @@ class FTChartSerializer:
         self,
         agg_klines_data: dict[str, LiveKLinesData],
         agg_blocks_list: dict[str, list[Block]],
+        agg_zigzag_dfs: dict[str, Any],
     ):
         """
         msgpack-serializes the ForwardTest KLinesData and Blocks and writes them to a file for each symbol, if enough
@@ -88,7 +102,7 @@ class FTChartSerializer:
         ):
             return
 
-        self._pack_serialized_data(agg_klines_data, agg_blocks_list)
+        self._pack_serialized_data(agg_klines_data, agg_blocks_list, agg_zigzag_dfs)
 
         try:
             for symbol, packed_data in self._latest_packed_data.items():
