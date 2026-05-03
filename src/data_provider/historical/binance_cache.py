@@ -50,6 +50,78 @@ class BinanceDataProvider(DataProvider):
             f"Failed to initialize Binance client after {max_retries} attempts"
         ) from last_exception
 
+    def get_klines(
+        self, symbol: str, interval: str, start_time: datetime, end_time: datetime
+    ) -> DataFrame:
+        """
+        Fetches historical KLines between start_time and end_time.
+
+        most_recent: If set, the start_time argument isn't passed to the fetching method, resulting in returning "limit" recent KLines
+        include_live_candle: If set to True, will include the latest (live open) candle in the returned DataFrame.
+        """
+        max_retries = config.binance_cache_max_retries
+        retry_interval = config.binance_cache_retry_interval
+
+        last_exception = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Fetch historical klines from Binance
+                start_str = start_time.isoformat()
+                end_str = end_time.isoformat()
+                raw_data = self.client.get_historical_klines(
+                    symbol=symbol,
+                    interval=interval,
+                    start_str=start_str,
+                    end_str=end_str,
+                    klines_type=HistoricalKlinesType.FUTURES,
+                )
+
+                # Raise an exception if no data is returned
+                if raw_data is None or len(raw_data) == 0:
+                    raise ValueError("No data returned from Binance")
+
+                # Take first 5 columns.
+                df = DataFrame(raw_data).iloc[:-1, :5]
+
+                # Sanitize and name the dataframe columns
+                cols = ["time", "open", "high", "low", "close"]
+                df.columns = cols
+                df["time"] = to_datetime(df["time"], unit="ms", utc=True).dt.tz_convert(
+                    None
+                )
+                float_cols = ["open", "high", "low", "close"]
+                df[float_cols] = df[float_cols].astype(float)
+                
+                return df
+
+            except BinanceAPIException as e:
+                code = e.response.json().get("code")
+                # These are permanent failures — no point retrying
+                if code == -1121:
+                    raise ValueError(f"Invalid symbol: {symbol}")
+                if code == -1120:
+                    raise ValueError(f"Invalid interval: {interval}")
+                last_exception = e
+
+            except (ConnectionError, ProxyError) as e:
+                last_exception = ConnectionError(
+                    f"Unable to fetch data from Binance: {e}"
+                )
+
+            except Exception as e:
+                last_exception = RuntimeError(
+                    f"Unexpected error in BinanceDataProvider: {e}"
+                )
+
+            logger.warning(
+                f"Attempt {attempt}/{max_retries} failed for {symbol}: {last_exception}. Retrying in {retry_interval}s..."
+            )
+            time.sleep(retry_interval)
+
+        raise BinanceDataFetchError(
+            f"Failed to fetch data for {symbol} after {max_retries} attempts. Last error: {last_exception}"
+        )
+
     def get_latest_klines(
         self,
         symbol: str,
@@ -60,7 +132,7 @@ class BinanceDataProvider(DataProvider):
         include_live_candle: bool = False,
     ) -> DataFrame:
         """
-        Fetches historical KLines.
+        Fetches historical KLines in the past timedelta window.
 
         most_recent: If set, the start_time argument isn't passed to the fetching method, resulting in returning "limit" recent KLines
         include_live_candle: If set to True, will include the latest (live open) candle in the returned DataFrame.
