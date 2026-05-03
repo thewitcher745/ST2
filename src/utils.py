@@ -1,4 +1,5 @@
 from datetime import timedelta
+from pandas import Timestamp
 
 
 class BinanceDataFetchError(Exception):
@@ -25,3 +26,11 @@ def convert_timeframe_to_timedelta(timeframe: str) -> timedelta:
         return timedelta(weeks=numeric_value)
     else:
         raise ValueError("Invalid timeframe definition.")
+
+
+def isoformat_none_or_timestamp(value: Timestamp | None) -> str | None:
+    """Converts a pd.Timestamp | None object to isoformat or returns None if object is None."""
+    if value is None:
+        return None
+    else:
+        return value.isoformat()

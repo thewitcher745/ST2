@@ -8,6 +8,7 @@ from .stoploss_provider import StoplossProvider
 from .target_provider import TargetProvider
 from ..blocks.block import Block
 from src.config import Config
+from src.utils import isoformat_none_or_timestamp
 
 config = Config()
 
@@ -88,8 +89,11 @@ class Position:
             "entry": self.entry,
             "targets": self.targets,
             "stoplosses": self.stoplosses,
-            "entry_time": self.entry_time,
-            "target_times": self.target_times,
-            "stop_time": self.stop_time,
+            "entry_time": isoformat_none_or_timestamp(self.entry_time),
+            "target_times": [
+                isoformat_none_or_timestamp(target_time)
+                for target_time in self.target_times
+            ],
+            "stop_time": isoformat_none_or_timestamp(self.stop_time),
             "stop_price": self.stop_price,
         }
