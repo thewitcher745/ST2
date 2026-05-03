@@ -20,13 +20,16 @@ class PositionManager:
             position for position in self.positions["long"] + self.positions["short"]
         ]
 
+    def reset_positions(self):
+        self.positions = {"long": [], "short": []}
+
     def simulate_and_generate_positions(
         self, blocks: list[Block], klines_data: KLinesData
     ):
         """
         Simulates all positions and generates new positions for each bounce.
         """
-        self.positions = {"long": [], "short": []}
+        self.reset_positions()
         for block in blocks:
             type = "long" if block.direction == "bullish" else "short"
             position = Position(block)
