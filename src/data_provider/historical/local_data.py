@@ -31,7 +31,7 @@ class LocalDataProvider(DataProvider):
         start_time: datetime,
         end_time: datetime,
     ) -> DataFrame:
-        file_name = f"{symbol}_{interval}_{start_time.isoformat()}_{end_time.isoformat()}.feather"
+        file_name = f"{symbol}_{interval}_{start_time.isoformat().replace(':', '-')}_{end_time.isoformat().replace(':', '-')}.feather"
         file_path = os.path.join(self.cache_parent_dir, file_name)
 
         # Fetch data and cache it if a local cache doesn't exist
