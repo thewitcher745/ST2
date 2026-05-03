@@ -11,6 +11,10 @@ def schema_typecast(val: Any, var_name: str) -> Any:
     Type-casts a variable with a given name and returns it as the correct type.
     Types are defined in config_schema.py.
     """
+    # If value is None, return None without type casting
+    if val is None:
+        return None
+    
     typecast_function = CONFIG_SCHEMA.get(var_name, None)
 
     if var_name not in CONFIG_SCHEMA or typecast_function is None:
