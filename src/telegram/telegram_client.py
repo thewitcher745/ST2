@@ -2,6 +2,9 @@
 Telegram client module for sending messages, getting channel names, etc.
 """
 
+from typing import Any
+
+
 import asyncio
 import httpx
 import logging
@@ -27,6 +30,28 @@ class TelegramClient:
             return config.TG_PROD_CHANNEL_ID
         else:
             return config.TG_DEV_CHANNEL_ID
+
+    async def get_channel_name(self) -> Any | None:
+        """Gets the name of the channel associated with the channel ID."""
+        url = config.telegram_api_endpoint
+        try:
+            response = await self._async_client.post(
+                f"{url}bot{self._token}/getChat?chat_id={self._channel_id}",
+            )
+            response.raise_for_status()
+        except Exception:
+            return None
+
+        data = response.json()
+
+        if "result" in data:
+            result = data["result"]
+        else:
+            return None
+
+        if "title" in result.keys():
+            return result["title"]
+        return None
 
     async def send_message(
         self, message: str, reply_id: int | None = None
