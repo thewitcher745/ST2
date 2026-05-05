@@ -76,6 +76,10 @@ class Position:
         self.stoplosses = stoplosses
 
     def to_dict(self) -> dict:
+        if self.exit_type == "FULL_TARGET":
+            exit_time = self.target_times[-1]
+        else:
+            exit_time = self.stop_time
         return {
             "base_block_id": self.base_block.id,
             "type": self.type,
@@ -90,6 +94,7 @@ class Position:
             "targets": self.targets,
             "stoplosses": self.stoplosses,
             "entry_time": isoformat_none_or_timestamp(self.entry_time),
+            "exit_time": isoformat_none_or_timestamp(exit_time),
             "target_times": [
                 isoformat_none_or_timestamp(target_time)
                 for target_time in self.target_times
