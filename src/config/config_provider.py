@@ -14,7 +14,7 @@ def schema_typecast(val: Any, var_name: str) -> Any:
     # If value is None, return None without type casting
     if val is None:
         return None
-    
+
     typecast_function = CONFIG_SCHEMA.get(var_name, None)
 
     if var_name not in CONFIG_SCHEMA or typecast_function is None:
@@ -48,6 +48,7 @@ class Config:
     stoploss_setup_function: str
     min_block_height_percentage: float
     max_block_height_percentage: float
+    block_types: str
     max_bounces: int
     bounce_target_threshold: int
     usdt_per_trade: float

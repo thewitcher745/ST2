@@ -12,6 +12,7 @@ CONFIG_SCHEMA = {
     "stoploss_setup_function": str,
     "min_block_height_percentage": float,
     "max_block_height_percentage": float,
+    "block_types": str,
     "max_bounces": int,
     "bounce_target_threshold": int,
     "usdt_per_trade": float,
