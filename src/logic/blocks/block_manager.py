@@ -108,53 +108,57 @@ class BlockManager:
             msb_kline_index = row["kline_index"]
             assert isinstance(msb_kline_index, int)
 
-            ob = self.factory.find_order_block_in_leg(
-                msb_kline_index,
-                leg_after_data,
-                klines_data,
-                direction,
-                formation_index,
-                start_time,
-                invalidation_price,
-            )
+            ob = None
+            if "OB" in config.block_types or config.block_types is None:
+                ob = self.factory.find_order_block_in_leg(
+                    msb_kline_index,
+                    leg_after_data,
+                    klines_data,
+                    direction,
+                    formation_index,
+                    start_time,
+                    invalidation_price,
+                )
             # The BB/MB property of the block depends on if the pivot after the MSB pivot is a lower low
             # or a higher low. A lower low results in a BB and a higher low results in an MB.
             msb_next_pivot_structure = zigzag_df.iloc[row["pivot_index"] + 1].structure
             bb = None
             mb = None
             if msb_next_pivot_structure == "LL" or msb_next_pivot_structure == "HH":
-                bb = self.factory.find_breaker_mitigation_block_in_leg(
-                    msb_kline_index,
-                    leg_before_data,
-                    klines_data,
-                    direction,
-                    formation_index,
-                    start_time,
-                    invalidation_price,
-                    type="BB",
-                )
+                if "BB" in config.block_types or config.block_types is None:
+                    bb = self.factory.find_breaker_mitigation_block_in_leg(
+                        msb_kline_index,
+                        leg_before_data,
+                        klines_data,
+                        direction,
+                        formation_index,
+                        start_time,
+                        invalidation_price,
+                        type="BB",
+                    )
             else:
-                mb = self.factory.find_breaker_mitigation_block_in_leg(
-                    msb_kline_index,
-                    leg_before_data,
-                    klines_data,
-                    direction,
-                    formation_index,
-                    start_time,
-                    invalidation_price,
-                    type="MB",
-                )
+                if "MB" in config.block_types or config.block_types is None:
+                    mb = self.factory.find_breaker_mitigation_block_in_leg(
+                        msb_kline_index,
+                        leg_before_data,
+                        klines_data,
+                        direction,
+                        formation_index,
+                        start_time,
+                        invalidation_price,
+                        type="MB",
+                    )
 
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
             # Also check if the blocks are in the valid range, as defined by config variables
             # min_block_height_percentage and max_block_height_percentage
-            if bb:
+            if bb is not None:
                 if is_block_height_percentage_valid(bb):
                     self.all_blocks[direction].append(bb)
-            if mb:
+            if mb is not None:
                 if is_block_height_percentage_valid(mb):
                     self.all_blocks[direction].append(mb)
-            if ob:
+            if ob is not None:
                 if is_block_height_percentage_valid(ob):
                     self.all_blocks[direction].append(ob)
 
