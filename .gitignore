@@ -3,12 +3,14 @@ data/klines
 data/state
 data/chart
 data/symbol_lists
+outputs/
 test.py
 **/__pycache__/
 chart.html
 **/**profile**
 /*.csv
 /*test*.py
+!/run_backtest.py
 .env.misc.local
 .env.secret
 /logs

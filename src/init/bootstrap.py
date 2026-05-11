@@ -18,6 +18,7 @@ STRUCTURE = {
         f"data/chart/{config.run_id}",
         "data/symbol_lists",
         f"logs/{config.run_id}",
+        "logs/backtest"
     ],
     "files": [
         (".env.secret", ".env.secret.template"),
