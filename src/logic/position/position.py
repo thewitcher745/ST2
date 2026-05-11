@@ -39,6 +39,7 @@ class Position:
         self.exit_type: Optional[str] = None
 
         self.entered: bool = False
+        self.exited: bool = False
         self.net_profit: float = 0
         self.percent_profit: float = 0
         self.highest_target: int = 0
@@ -76,14 +77,11 @@ class Position:
         self.stoplosses = stoplosses
 
     def to_dict(self) -> dict:
-        if self.exit_type == "FULL_TARGET":
-            exit_time = self.target_times[-1]
-        else:
-            exit_time = self.stop_time
         return {
             "base_block_id": self.base_block.id,
             "type": self.type,
             "entered": self.entered,
+            "exited": self.exited,
             "exit_type": self.exit_type,
             "base_block_height_percentage": self.base_block.height_percentage,
             "highest_target": self.highest_target,
@@ -94,7 +92,7 @@ class Position:
             "targets": self.targets,
             "stoplosses": self.stoplosses,
             "entry_time": isoformat_none_or_timestamp(self.entry_time),
-            "exit_time": isoformat_none_or_timestamp(exit_time),
+            "exit_time": isoformat_none_or_timestamp(self.exit_time),
             "target_times": [
                 isoformat_none_or_timestamp(target_time)
                 for target_time in self.target_times

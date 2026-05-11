@@ -357,6 +357,7 @@ class PositionSimulator:
                     pos.stop_price = stoploss_value
                     pos.exit_time = pos.stop_time
                     pos.exit_type = f"STOPLOSS_{pos.highest_target}"
+                    pos.exited = True
                     pos.target_indices = pos.target_indices[: pos.highest_target]
                     pos.target_times = pos.target_times[: pos.highest_target]
 
@@ -374,6 +375,7 @@ class PositionSimulator:
             if pos.highest_target == len(pos.targets):
                 pos.exit_time = pos.target_times[-1]
                 pos.exit_type = "FULL_TARGET"
+                pos.exited = True
 
                 break
 
