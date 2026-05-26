@@ -49,7 +49,7 @@ class BlockManager:
     @property
     def all_blocks_aslist(self) -> list[Block]:
         """Returns all blocks as a list without direction separation."""
-        return self.all_blocks["bullish"] + self.active_blocks["bearish"]
+        return self.all_blocks["bullish"] + self.all_blocks["bearish"]
 
     def update_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData
