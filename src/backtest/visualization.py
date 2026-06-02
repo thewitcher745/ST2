@@ -11,6 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from pandas import DataFrame
 import logging
 
+logger = logging.getLogger("[BacktestVisualizer]")
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 # ============================================================================
@@ -648,27 +649,27 @@ class VisualizationEngine:
             save_pdf: If True, save all charts in a single PDF
             save_individual: If True, save each chart as individual PNG
         """
-        print("🎨 Starting visualization generation...")
+        logger.info("🎨 Starting visualization generation...")
 
         # Step 1: Extract and prepare data
-        print("📊 Extracting data from aggregator...")
+        logger.info("📊 Extracting data from aggregator...")
         self.data = self.data_provider.get_analysis_data()
-        print(f"   ✓ Loaded {len(self.data.df)} configurations")
-        print(f"   ✓ Parameters: {', '.join(self.data.parameter_names)}")
-        print(f"   ✓ Fitness functions: {', '.join(self.data.fitness_functions)}")
+        logger.info(f"   ✓ Loaded {len(self.data.df)} configurations")
+        logger.info(f"   ✓ Parameters: {', '.join(self.data.parameter_names)}")
+        logger.info(f"   ✓ Fitness functions: {', '.join(self.data.fitness_functions)}")
 
         # Step 2: Compute correlations
-        print("🔢 Computing correlations...")
+        logger.info("🔢 Computing correlations...")
         self.analyzer = CorrelationAnalyzer(self.data)
         self.correlations = self.analyzer.compute_correlations()
-        print("   ✓ Correlations computed")
+        logger.info("   ✓ Correlations computed")
 
         # Step 3: Generate visualizations
         visualizers = self._create_visualizers()
 
         figures = []
         for visualizer in visualizers:
-            print(f"📈 Generating {visualizer.get_filename()}...")
+            logger.info(f"📈 Generating {visualizer.get_filename()}...")
             fig = visualizer.generate()
             figures.append((visualizer.get_filename(), fig))
 
@@ -683,7 +684,7 @@ class VisualizationEngine:
         for _, fig in figures:
             plt.close(fig)
 
-        print(f"✅ All visualizations saved to: {self.config.output_dir}")
+        logger.info(f"✅ All visualizations saved to: {self.config.output_dir}")
 
     def _create_visualizers(self) -> list[BaseVisualizer]:
         """
@@ -706,17 +707,17 @@ class VisualizationEngine:
     def _save_pdf(self, figures: list[tuple[str, Figure]]):
         """Save all figures to a single PDF file."""
         pdf_path = self.config.output_dir / "backtest_analysis_report.pdf"
-        print("💾 Saving PDF report...")
+        logger.info("💾 Saving PDF report...")
 
         with PdfPages(pdf_path) as pdf:
             for name, fig in figures:
                 pdf.savefig(fig, dpi=self.config.dpi, bbox_inches="tight")
 
-        print(f"   ✓ PDF report saved: {pdf_path}")
+        logger.info(f"   ✓ PDF report saved: {pdf_path}")
 
     def _save_individual_figures(self, figures: list[tuple[str, Figure]]):
         """Save each figure as an individual PNG file."""
         for name, fig in figures:
             path = self.config.output_dir / f"{name}.png"
             fig.savefig(path, dpi=self.config.dpi, bbox_inches="tight")
-            print(f"   ✓ Saved {path}")
+            logger.info(f"   ✓ Saved {path}")
