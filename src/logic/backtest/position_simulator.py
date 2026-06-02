@@ -382,7 +382,7 @@ class PositionSimulator:
     @staticmethod
     def _calculate_financial_outcome(pos: Position):
         """Handles the profit/loss math."""
-        if not pos.entered:
+        if not pos.exited:
             return
 
         total_cap = config.usdt_per_trade * config.leverage
