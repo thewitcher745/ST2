@@ -236,3 +236,5 @@ class SignalManager:
         # If the position has been entered, don't cancel it.
         if position.entered:
             return False
+
+        return True
