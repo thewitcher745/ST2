@@ -1,9 +1,14 @@
+from typing import cast
 from pandas import DataFrame
 from pathlib import Path
 from datetime import datetime
+import pandas as pd
 import json
+import logging
 
 from src.config import Config
+
+logger = logging.getLogger("[BacktestResultsAggregator]")
 
 
 class ResultsAggregator:
@@ -72,10 +77,15 @@ class ResultsAggregator:
         df["score"] = score
         self.rows = df.to_dict("records")
 
-    def _save_config_json(self):
-        """Save full config with constants and ranges to JSON."""
+    def _save_config_json(self, symbols: list[str]):
+        """
+        Save full config with constants and ranges to JSON.
+
+        Args:
+            List of symbols to write to the config file.
+        """
         config = Config()
-        full_config = {}
+        full_config = {"symbols": symbols}
 
         # Add all config attributes
         for attr in dir(config):
@@ -93,18 +103,82 @@ class ResultsAggregator:
         with open(config_path, "w") as f:
             json.dump(full_config, f, indent=2, default=str)
 
-    def to_csv(self):
+    def to_csv(self, symbols: list[str]):
         """
         Creates a pandas dataframe with the rows and saves to timestamped folder.
-        Also saves the config JSON.
+        Also saves the config JSON and Excel files.
+
+        Args:
+            symbols: List of symbols to write to the config.json
         """
         self.calculate_scores()
 
+        df = DataFrame(self.rows)
+
         # Save CSV
         csv_path = self.output_dir / Path(self.output_filepath).name
-        DataFrame(self.rows).to_csv(csv_path, index=False)
+        df.to_csv(csv_path, index=False)
+
+        # Save full Excel
+        excel_path = (
+            self.output_dir / Path(self.output_filepath).with_suffix(".xlsx").name
+        )
+        df.to_excel(excel_path, index=False, engine="openpyxl")
+
+        # Save filtered Excel
+        self._save_filtered_excel(df)
 
         # Save config JSON
-        self._save_config_json()
+        self._save_config_json(symbols)
 
-        print(f"Results saved to: {self.output_dir}")
+        logger.info(f"Results saved to: {self.output_dir}")
+
+    def _save_filtered_excel(self, df: DataFrame):
+        """
+        Save filtered Excel with:
+        - Filter: total_net_profit > 0 and total_winrate >= 50
+        - Separate sheets per timeframe
+        - Reordered columns: config params, key metrics, then rest
+        """
+        # Filter rows
+        filtered_df = df[
+            (df["total_net_profit"] > 0) & (df["total_winrate"] >= 50)
+        ].copy()
+
+        if filtered_df.empty:
+            logger.info("No rows passed the filter criteria")
+            return
+
+        # Identify config param columns (from params_range_dict)
+        config_cols = ["run_id"] + list(self.params_range_dict.keys())
+
+        # Key metrics to place after config params
+        key_metrics = [
+            "total_net_profit",
+            "average_monthly_drawdown_overall",
+            "total_winrate",
+            "average_trades_per_month",
+            "score",
+        ]
+
+        # Reorder columns
+        other_cols = [
+            col for col in filtered_df.columns if col not in config_cols + key_metrics
+        ]
+        ordered_cols = config_cols + key_metrics + other_cols
+        filtered_df = filtered_df[ordered_cols]
+
+        filtered_df = cast(DataFrame, filtered_df)
+
+        # Save to Excel with sheets per timeframe
+        excel_filtered_path = self.output_dir / "filtered_results.xlsx"
+
+        with pd.ExcelWriter(excel_filtered_path, engine="openpyxl") as writer:
+            if "timeframe" in filtered_df.columns:
+                for tf in filtered_df["timeframe"].unique():
+                    tf_df = filtered_df[filtered_df["timeframe"] == tf]
+                    tf_df.to_excel(writer, sheet_name=str(tf), index=False)
+            else:
+                filtered_df.to_excel(writer, sheet_name="All", index=False)
+
+        logger.info(f"Filtered results saved to: {excel_filtered_path}")

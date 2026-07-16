@@ -36,13 +36,15 @@ logger.info(f"{total_cases_count} cases to run.")
 
 current_count = 1
 
+symbols = ["XAGUSDT"]
+
 for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:
         logger.info(f"Running case {current_count}/{total_cases_count}")
 
     config_gen.override_config_with_combo(config_combo_dict)
     bt_exec = BacktestExecutor()
-    symbols = ["XAUUSDT"]
+
     start_time = datetime(year=2025, month=5, day=1)
     end_time = datetime(year=2026, month=5, day=1)
 
@@ -57,7 +59,7 @@ for run_id, config_combo_dict in config_gen:
 
     current_count += 1
 
-results_aggregator.to_csv()
+results_aggregator.to_csv(symbols)
 
 engine = VisualizationEngine(results_aggregator)
 engine.generate_all_visualizations(save_pdf=True, save_individual=True)
