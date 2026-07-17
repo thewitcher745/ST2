@@ -21,7 +21,7 @@ params_range_dict = {
         "default",
     ],
     "block_types": ["OB", "BB", "MB", "OB/BB", "OB/MB", "MB/BB", "OB/MB/BB"],
-    "timeframe": ["5m", "15m", "30m", "1h", "4h"],
+    "timeframe": ["15m", "30m", "1h"],
     "target_coeff": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5],
     "stoploss_coeff": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5],
     "max_bounces": [1, 2, 3],
@@ -36,7 +36,7 @@ logger.info(f"{total_cases_count} cases to run.")
 
 current_count = 1
 
-symbols = ["XAGUSDT"]
+symbols = ["XAUUSDT"]
 
 for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:
@@ -45,13 +45,10 @@ for run_id, config_combo_dict in config_gen:
     config_gen.override_config_with_combo(config_combo_dict)
     bt_exec = BacktestExecutor()
 
-    start_time = datetime(year=2025, month=5, day=1)
-    end_time = datetime(year=2026, month=5, day=1)
+    start_time = datetime(year=2026, month=1, day=1)
+    end_time = datetime(year=2026, month=7, day=1)
 
     positions_df = bt_exec.execute(symbols, start_time, end_time)
-    positions_df[positions_df.entered & positions_df.exited].to_csv(
-        "backtest_main_positions.csv"
-    )
 
     metrics_dict = MetricsCalculator().calculate(positions_df=positions_df)
 
