@@ -155,7 +155,6 @@ class ResultsAggregator:
         # Key metrics to place after config params
         key_metrics = [
             "total_net_profit",
-            "average_monthly_drawdown_overall",
             "total_winrate",
             "average_trades_per_month",
             "score",

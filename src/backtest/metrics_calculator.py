@@ -30,13 +30,9 @@ class MetricsCalculator:
             "total_position_count": len(valid_positions_df),
             "total_winrate": self._total_winrate(valid_positions_df),
             "total_net_profit": self._total_net_profit(valid_positions_df),
-            "total_drawdown": self._total_drawdown(time_indexed_df),
             "average_target_hit": self._average_target_hit(valid_positions_df),
             "average_trades_per_month": self._average_trades_per_month(monthly_groups),
             "average_monthly_profit_overall": self._average_monthly_profit_overall(
-                monthly_groups
-            ),
-            "average_monthly_drawdown_overall": self._average_monthly_drawdown_overall(
                 monthly_groups
             ),
             "no_trade_months": self._count_no_trade_months(
@@ -53,6 +49,16 @@ class MetricsCalculator:
 
         # Add per-month winrate
         metrics.update(self._winrate_per_month(monthly_groups))
+
+        # Add per-month drawdown
+        metrics.update(self._drawdown_per_month(monthly_groups))
+
+        # Total and average monthly drawdown are added after the per-month
+        # drawdown columns so they appear as a summary following them
+        metrics["total_drawdown"] = self._total_drawdown(time_indexed_df)
+        metrics["average_monthly_drawdown_overall"] = (
+            self._average_monthly_drawdown_overall(monthly_groups)
+        )
 
         # Add per-year metrics
         metrics.update(self._metrics_per_year(yearly_groups, monthly_groups))
@@ -179,6 +185,19 @@ class MetricsCalculator:
         for month_key, df in monthly_groups.items():
             winrate = MetricsCalculator._total_winrate(df) if not df.empty else 0.0
             result[f"winrate_{month_key}"] = winrate
+        return result
+
+    @staticmethod
+    def _drawdown_per_month(monthly_groups: dict[str, DataFrame]) -> dict:
+        """Return dict of max drawdown per month."""
+        result = {}
+        for month_key, df in monthly_groups.items():
+            drawdown = (
+                MetricsCalculator._max_drawdown(df.net_profit.cumsum())
+                if not df.empty
+                else 0.0
+            )
+            result[f"drawdown_{month_key}"] = drawdown
         return result
 
     @staticmethod
