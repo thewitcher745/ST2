@@ -14,3 +14,4 @@ chart.html
 .env.misc.local
 .env.secret
 /logs
+/env_bat_files
