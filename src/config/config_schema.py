@@ -48,4 +48,5 @@ CONFIG_SCHEMA = {
     "symbols_filename": str,
     "direction": str,
     "cid": str,
+    "config_file": str,
 }
