@@ -90,6 +90,7 @@ class Config:
     cid: Optional[
         str
     ]  # The channel ID that overrides both TG_DEV_CHANNEL_ID and TG_PROD_CHANNEL_ID
+    config_file: str  # The config file to use
 
     def _get_args(self):
         argument_parser = argparse.ArgumentParser("ST2 Runtime args")
@@ -140,6 +141,13 @@ class Config:
             default=None,
             help="Override the channel ID configurations from the .env.secret file.",
         )
+        argument_parser.add_argument(
+            "--config",
+            "--config_file",
+            dest="config_file",
+            default=".env.config",
+            help="Path to the configuration file to use (default: .env.config)",
+        )
 
         return argument_parser.parse_args()
 
@@ -159,12 +167,16 @@ class Config:
         if Config._initialized:
             return
 
-        config_values = dotenv_values(config_env_path)
+        args = self._get_args()
+        
+        # Use the config file path from runtime arguments
+        config_env_path = args.config_file
+
         misc_values = dotenv_values(misc_env_path)
         misc_local_values = dotenv_values(misc_local_env_path)
         secret_values = dotenv_values(secret_env_path)
 
-        args = self._get_args()
+        config_values = dotenv_values(config_env_path)
 
         for key, value in config_values.items():
             self.__setattr__(key, schema_typecast(value, key))
@@ -204,6 +216,8 @@ class Config:
             "-t": "timeframe",
             "--timeframe": "timeframe",
             "--cid": "cid",
+            "--config": "config_file",
+            "--config_file": "config_file",
         }
 
         args_provided = set()
@@ -225,5 +239,9 @@ class Config:
         if "cid" in args_provided:
             if self.cid is not None:
                 parts.append("cid-" + self.cid)
+
+        if "config_file" in args_provided:
+            if self.config_file is not None:
+                parts.append("cfg-" + self.config_file.replace(".env.", "").replace(".config", ""))
 
         return ".".join(parts) if parts else "default"
