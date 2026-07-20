@@ -59,9 +59,6 @@ class BinanceDataProvider(DataProvider):
         most_recent: If set, the start_time argument isn't passed to the fetching method, resulting in returning "limit" recent KLines
         include_live_candle: If set to True, will include the latest (live open) candle in the returned DataFrame.
         """
-        logger.info(
-            f"Getting latest KLines, symbol={symbol} interval={interval} start_time={start_time}, end_time={end_time}"
-        )
         max_retries = config.binance_cache_max_retries
         retry_interval = config.binance_cache_retry_interval
 
@@ -140,9 +137,6 @@ class BinanceDataProvider(DataProvider):
         most_recent: If set, the start_time argument isn't passed to the fetching method, resulting in returning "limit" recent KLines
         include_live_candle: If set to True, will include the latest (live open) candle in the returned DataFrame.
         """
-        logger.info(
-            f"Getting latest KLines, symbol={symbol} interval={interval} timedelta={time_delta}"
-        )
         max_retries = config.binance_cache_max_retries
         retry_interval = config.binance_cache_retry_interval
 
