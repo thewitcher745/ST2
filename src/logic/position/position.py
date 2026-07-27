@@ -56,10 +56,12 @@ class Position:
         self.setup_targets()
         self.setup_stoplosses()
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other):
+        if not isinstance(other, Position):
+            return False
         return self.id == other.id
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return hash(self.id)
 
     def setup_targets(self):

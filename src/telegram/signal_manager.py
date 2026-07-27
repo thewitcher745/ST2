@@ -131,6 +131,12 @@ class SignalManager:
         # Cancel the outdated positions
         for position in outdated_positions:
             if position.id in self._sent_positions_message_ids.keys():
+                if position.entered:
+                    logger.debug(
+                        f"[{self._symbol}] Position {position.id} is entered, skipping cancellation"
+                    )
+                    continue
+
                 if self._is_signal_cancelable(position):
                     message_text = "Cancel"
                     reply_id = self._sent_positions_message_ids[position.id]
