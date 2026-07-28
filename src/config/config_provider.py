@@ -132,7 +132,7 @@ class Config:
         argument_parser.add_argument(
             "-t",
             "--timeframe",
-            choices=["5m", "15m", "30m", "1h", "4h"],
+            choices=["1m", "5m", "15m", "30m", "1h", "4h"],
             default="15m",
             help="Override the timeframe config from the .env.config file.",
         )
@@ -168,7 +168,7 @@ class Config:
             return
 
         args = self._get_args()
-        
+
         # Use the config file path from runtime arguments
         config_env_path = args.config_file
 
@@ -242,6 +242,9 @@ class Config:
 
         if "config_file" in args_provided:
             if self.config_file is not None:
-                parts.append("cfg-" + self.config_file.replace(".env.", "").replace(".config", ""))
+                parts.append(
+                    "cfg-"
+                    + self.config_file.replace(".env.", "").replace(".config", "")
+                )
 
         return ".".join(parts) if parts else "default"
