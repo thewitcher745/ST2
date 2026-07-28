@@ -137,6 +137,9 @@ class SignalManager:
                     )
                     continue
 
+                if position.base_block.end_index is None:
+                    continue
+
                 if self._is_signal_cancelable(position):
                     message_text = "Cancel"
                     reply_id = self._sent_positions_message_ids[position.id]
