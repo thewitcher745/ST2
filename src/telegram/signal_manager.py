@@ -146,6 +146,9 @@ class SignalManager:
                     logger.info(
                         f"[{self._symbol}] Canceling position with ID {position.id} for symbol {self._symbol}, reply_id {reply_id}"
                     )
+                    logger.info(
+                        f"Position with ID {position.id} entered status: Entered? {position.entered} Entry time: {position.entry_time}"
+                    )
                     try:
                         # In a dry run nothing is sent to the channels.
                         if not config.dry:
