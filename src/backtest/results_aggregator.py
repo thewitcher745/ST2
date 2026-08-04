@@ -141,9 +141,7 @@ class ResultsAggregator:
         - Reordered columns: config params, key metrics, then rest
         """
         # Filter rows
-        filtered_df = df[
-            (df["total_net_profit"] > 0) & (df["total_winrate"] >= 50)
-        ].copy()
+        filtered_df = df[df["total_net_profit"] > 0].copy()
 
         if filtered_df.empty:
             logger.info("No rows passed the filter criteria")
