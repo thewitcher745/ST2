@@ -17,8 +17,15 @@ class MessageTemplate:
 
     @staticmethod
     def _create_trailing_setup_string() -> str:
-        """Placeholder, should be dynamic, to be implemented later."""
-        return "\n\nTrailing Configuration:\nStop: Breakeven -\nTrigger: Target (1)"
+        if (
+            config.stoploss_setup_function == "default"
+            or "no_trailing" in config.stoploss_setup_function
+        ):
+            return ""
+        elif "trailing_breakeven_t1" in config.stoploss_setup_function:
+            return "\n\nTrailing Configuration:\nStop: Breakeven -\nTrigger: Target (1)"
+        else:
+            return ""
 
     @staticmethod
     def format_signal(position: Position, symbol: str) -> str:
