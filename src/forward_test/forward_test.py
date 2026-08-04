@@ -90,26 +90,6 @@ class ForwardTest:
 
     async def _process_signals(self, symbol: str):
         """Finds which signals need cancelling and which ones need posting for a given signal."""
-        all_positions = self.position_managers[symbol].positions_aslist
-
-        # --- DIAGNOSTIC (per-symbol, non-accumulating)
-        if not hasattr(self, "_entered_snapshot"):
-            self._entered_snapshot: dict[str, dict[str, bool]] = {}
-        prev = self._entered_snapshot.get(symbol)
-        if prev is not None:
-            for p in all_positions:
-                if prev.get(p.id) is True and not p.entered:
-                    logger.error(
-                        f"[{symbol}] ENTERED REGRESSION id={p.id} type={p.type} "
-                        f"entry={p.entry} block=({p.base_block.start_index},"
-                        f"{p.base_block.end_index})"
-                    )
-            for gone in set(prev) - {p.id for p in all_positions}:
-                if prev[gone]:
-                    logger.warning(f"[{symbol}] ENTERED position vanished: id={gone}")
-        self._entered_snapshot[symbol] = {p.id: p.entered for p in all_positions}
-        # --- END DIAGNOSTIC
-
         updated_positions_list = self.position_managers[symbol].positions_aslist
 
         current_price = self._current_price[symbol]
