@@ -50,6 +50,9 @@ class MetricsCalculator:
         # Add per-month winrate
         metrics.update(self._winrate_per_month(monthly_groups))
 
+        # Add per-month position count
+        metrics.update(self._position_count_per_month(monthly_groups))
+
         # Add per-month drawdown
         metrics.update(self._drawdown_per_month(monthly_groups))
 
@@ -198,6 +201,14 @@ class MetricsCalculator:
                 else 0.0
             )
             result[f"drawdown_{month_key}"] = drawdown
+        return result
+
+    @staticmethod
+    def _position_count_per_month(monthly_groups: dict[str, DataFrame]) -> dict:
+        """Return dict of position count per month."""
+        result = {}
+        for month_key, df in monthly_groups.items():
+            result[f"position_count_{month_key}"] = len(df)
         return result
 
     @staticmethod
