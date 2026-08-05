@@ -30,6 +30,11 @@ class MessageTemplate:
     @staticmethod
     def format_signal(position: Position, symbol: str) -> str:
         symbol_text = symbol.replace("USDT", "/USDT")
+
+        # Exception for Silver
+        if symbol == "XAGUSDT":
+            symbol_text = "SILVER(XAG)/USDT"
+
         leverage = config.leverage
         leverage_type = config.leverage_type
         entry_string = MessageTemplate._format_price_precision(position.entry, symbol)
