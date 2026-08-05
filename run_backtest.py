@@ -36,7 +36,7 @@ logger.info(f"{total_cases_count} cases to run.")
 
 current_count = 1
 
-symbols = ["XAUUSDT"]
+symbols = ["ETHUSDT"]
 
 for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:
@@ -46,9 +46,10 @@ for run_id, config_combo_dict in config_gen:
     bt_exec = BacktestExecutor()
 
     start_time = datetime(year=2026, month=1, day=1)
-    end_time = datetime(year=2026, month=7, day=1)
+    end_time = datetime(year=2026, month=8, day=1)
 
     positions_df = bt_exec.execute(symbols, start_time, end_time)
+    positions_df[positions_df.exited].to_csv("backtest_positions.csv")
 
     metrics_dict = MetricsCalculator().calculate(positions_df=positions_df)
 
