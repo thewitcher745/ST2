@@ -49,7 +49,7 @@ for run_id, config_combo_dict in config_gen:
     end_time = datetime(year=2026, month=8, day=1)
 
     positions_df = bt_exec.execute(symbols, start_time, end_time)
-    positions_df[positions_df.exited].to_csv("backtest_positions.csv")
+    # positions_df[positions_df.exited].to_csv("backtest_positions.csv")
 
     metrics_dict = MetricsCalculator().calculate(positions_df=positions_df)
 
