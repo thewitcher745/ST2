@@ -65,6 +65,8 @@ Take-Profit Targets:"""
         message += trailing_setup_string
 
         if config.validation:
-            message += f"\n\nID:\n{position.id}"
+            message += "\n\nAdditional info:"
+            message += f"\nID:{position.id}"
+            message += f"\nTimeframe:{config.timeframe}"
 
         return message
