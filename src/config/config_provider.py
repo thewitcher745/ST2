@@ -92,6 +92,41 @@ class Config:
     ]  # The channel ID that overrides both TG_DEV_CHANNEL_ID and TG_PROD_CHANNEL_ID
     config_file: str  # The config file to use
 
+    @staticmethod
+    def _normalize_cli_args(argv: list[str]) -> list[str]:
+        """
+        Normalizes CLI args before argparse sees them.
+
+        This allows negative Telegram channel IDs to be passed as values to
+        --cid without requiring the --cid=<value> form.
+        """
+        normalized: list[str] = []
+        i = 0
+
+        while i < len(argv):
+            arg = argv[i]
+
+            if arg == "--cid" and i + 1 < len(argv):
+                normalized.append(f"--cid={argv[i + 1]}")
+                i += 2
+                continue
+
+            normalized.append(arg)
+            i += 1
+
+        return normalized
+
+    @staticmethod
+    def _merge_cid_args(cid_values: list[str] | None) -> str | None:
+        if not cid_values:
+            return None
+
+        merged: list[str] = []
+        for cid_value in cid_values:
+            merged.extend(cid.strip() for cid in cid_value.split(",") if cid.strip())
+
+        return ",".join(merged) if merged else None
+
     def _get_args(self):
         argument_parser = argparse.ArgumentParser("ST2 Runtime args")
 
@@ -138,8 +173,12 @@ class Config:
         )
         argument_parser.add_argument(
             "--cid",
+            action="append",
             default=None,
-            help="Override the channel ID configurations from the .env.secret file.",
+            help=(
+                "Override channel ID configurations from .env.secret. "
+                "Accepts a comma-separated list and may be passed multiple times."
+            ),
         )
         argument_parser.add_argument(
             "--config",
@@ -149,7 +188,9 @@ class Config:
             help="Path to the configuration file to use (default: .env.config)",
         )
 
-        return argument_parser.parse_args()
+        args = argument_parser.parse_args(self._normalize_cli_args(sys.argv[1:]))
+        args.cid = self._merge_cid_args(args.cid)
+        return args
 
     def __new__(cls):
         if cls._instance is None:
