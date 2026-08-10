@@ -17,13 +17,20 @@ async def confirm_channel():
     telegram_client = TelegramClient()
 
     try:
-        channel_name = await telegram_client.get_channel_name()
+        channel_infos = await telegram_client.get_channel_names()
 
-        if channel_name is None:
-            raise ValueError("Couldn't connect to chat. Check the channel ID and confirm the bot is an administrator in the chat.")
+        if any(channel_name is None for _, channel_name in channel_infos):
+            raise ValueError(
+                "Couldn't connect to one or more chats. Check the channel ID values and confirm the bot is an administrator in the chat."
+            )
+
+        channel_display = ", ".join(
+            f"{channel_name} ({channel_id})"
+            for channel_id, channel_name in channel_infos
+        )
 
         if config.dev:
-            print(f"\nDEV mode - posting to channel: {channel_name}\n")
+            print(f"\nDEV mode - posting to channels: {channel_display}\n")
             return
 
         # Production mode - require confirmation
@@ -34,8 +41,8 @@ async def confirm_channel():
         else:
             print("DEVELOPMENT/VALIDATION MODE")
 
-        print(f"Target channel: {channel_name}")
-        print(f"Channel ID: {telegram_client._channel_id}")
+        print(f"Target channels: {channel_display}")
+        print(f"Primary channel ID: {telegram_client.primary_channel_id}")
         print(f"{'=' * 60}\n")
 
         while True:
