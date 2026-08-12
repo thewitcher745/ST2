@@ -61,7 +61,7 @@ class BacktestExecutor:
                 zigzag_df = self._zigzag.calculate(klines_data)
 
                 msbs_df = self._msb_identifier.find_all_matches(
-                    zigzag_df["structure"].tolist(),
+                    zigzag_df["pivot_type"].tolist(),
                     zigzag_df["kline_index"].tolist(),
                     zigzag_df["pivot_value"].tolist(),
                     zigzag_df["pivot_formation_index"].tolist(),

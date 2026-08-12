@@ -44,7 +44,7 @@ class StructureCalculator:
         self.zigzag_dfs[symbol] = zigzag_df
 
         msbs_df = msb_identifier.find_all_matches(
-            zigzag_df["structure"].tolist(),
+            zigzag_df["pivot_type"].tolist(),
             zigzag_df["kline_index"].tolist(),
             zigzag_df["pivot_value"].tolist(),
             zigzag_df["pivot_formation_index"].tolist(),

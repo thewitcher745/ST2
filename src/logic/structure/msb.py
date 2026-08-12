@@ -1,6 +1,4 @@
-from typing import Dict, Optional, Union
 from numpy.lib.stride_tricks import sliding_window_view
-from numpy.typing import NDArray
 from pandas import DataFrame
 from numpy import array
 
@@ -22,29 +20,9 @@ class MSBIdentifier:
         """
         self.fib_factor = fib_factor
 
-        # Bullish MSB: Transition from LH to HH
-        self.bullish_patterns = [("LH", "LL", "HH"), ("LH", "HL", "HH")]
-
-        # Bearish MSB: Transition from HL to LL
-        self.bearish_patterns = [("HL", "HH", "LL"), ("HL", "LH", "LL")]
-
-    def _match_sequence(
-        self, sequence: NDArray
-    ) -> Optional[Dict[str, Union[str, int, tuple]]]:
-        """Matches a 3-pivot window against MSB definitions."""
-        seq_tuple = tuple(sequence)
-
-        if seq_tuple in self.bullish_patterns:
-            return {"direction": "bullish"}
-
-        if seq_tuple in self.bearish_patterns:
-            return {"direction": "bearish"}
-
-        return None
-
     def find_all_matches(
         self,
-        structure_list: list,
+        pivot_types: list,
         klines_indices: list,
         pivot_values: list,
         pivot_formation_indices: list,
@@ -56,7 +34,7 @@ class MSBIdentifier:
         Leg After:  Pivot 1 -> Pivot 2
         Confirmation: Pivot 3 breaks Pivot 1
         """
-        if len(structure_list) < 4:
+        if len(pivot_types) < 4:
             return DataFrame(
                 columns=[
                     "direction",
@@ -69,27 +47,25 @@ class MSBIdentifier:
                 ]
             )
 
-        tags = array(structure_list)
+        types = array(pivot_types)
         k_idx = array(klines_indices)
         prices = array(pivot_values)
 
         # 1. Create 4-pivot windows
-        tag_windows = sliding_window_view(tags, 4)
+        type_windows = sliding_window_view(types, 4)
         price_windows = sliding_window_view(prices, 4)
 
         results = []
-        for i, (tags_win, prices_win) in enumerate(zip(tag_windows, price_windows)):
-            # We match based on the 'broken' pivot (index 1) and 'breaking' pivot (index 3)
-            # Bullish: Pivot 1 was a LH, Pivot 3 is a HH
-            # Bearish: Pivot 1 was a HL, Pivot 3 is a LL
-
-            p0, p1, p2, p3 = prices_win
-            t1, t3 = tags_win[1], tags_win[3]
+        for i, (types_win, prices_win) in enumerate(zip(type_windows, price_windows)):
+            # We match based on the pivot types and the direct price relationship
+            # between the broken pivot (p1) and the breaking pivot (p3).
+            _, p1, p2, p3 = prices_win
+            t0, t1, t2, t3 = types_win
 
             direction = None
-            if t1 == "LH" and t3 == "HH":
+            if t0 == -1 and t1 == 1 and t2 == -1 and t3 == 1 and p3 > p1:
                 direction = "bullish"
-            elif t1 == "HL" and t3 == "LL":
+            elif t0 == 1 and t1 == -1 and t2 == 1 and t3 == -1 and p3 < p1:
                 direction = "bearish"
 
             if direction:
