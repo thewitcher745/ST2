@@ -386,13 +386,18 @@ class PositionSimulator:
             return
 
         total_cap = config.usdt_per_trade * config.leverage
-        qty_per_target = (total_cap / pos.entry) / len(pos.targets)
+        PositionSimulator._validate_target_quantity_weights(pos)
+
+        total_qty = total_cap / pos.entry
+        normalized_weights = (
+            pos.target_quantity_weights / pos.target_quantity_weights.sum()
+        )
+        quantities_per_target = total_qty * normalized_weights
         stop_price = pos.stop_price if pos.stop_price else pos.stoplosses[0]
         hits = pos.highest_target
-        misses = len(pos.targets) - hits
 
-        delta = sum(pos.targets[:hits] * qty_per_target) + (
-            misses * qty_per_target * stop_price
+        delta = sum(pos.targets[:hits] * quantities_per_target[:hits]) + sum(
+            quantities_per_target[hits:] * stop_price
         )
         if pos.type == "long":
             pos.net_profit = delta - total_cap
@@ -400,3 +405,19 @@ class PositionSimulator:
             pos.net_profit = total_cap - delta
 
         pos.percent_profit = (pos.net_profit / config.usdt_per_trade) * 100
+
+    @staticmethod
+    def _validate_target_quantity_weights(pos: Position):
+        if len(pos.targets) != len(pos.target_quantity_weights):
+            raise ValueError(
+                "Target quantity weights count must match the number of targets."
+            )
+
+        if len(pos.target_quantity_weights) == 0:
+            raise ValueError("Target quantity weights cannot be empty.")
+
+        if any(pos.target_quantity_weights <= 0):
+            raise ValueError("Target quantity weights must all be positive.")
+
+        if pos.target_quantity_weights.sum() <= 0:
+            raise ValueError("Target quantity weights must have a positive sum.")

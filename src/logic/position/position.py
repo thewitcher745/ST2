@@ -27,6 +27,7 @@ class Position:
 
         self.stoplosses: NDArray[float64] = array([])
         self.targets: NDArray[float64] = array([])
+        self.target_quantity_weights: NDArray[float64] = array([])
 
         self.entry_time: Optional[Timestamp] = None
         self.entry_index: Optional[int] = None
@@ -68,8 +69,9 @@ class Position:
         """
         This method uses an external module to set up the targets.
         """
-        targets = TargetProvider.get_targets(self)
-        self.targets = targets
+        target_plan = TargetProvider.get_target_plan(self)
+        self.targets = target_plan.prices
+        self.target_quantity_weights = target_plan.quantity_weights
 
     def setup_stoplosses(self):
         """
@@ -92,6 +94,7 @@ class Position:
             "full_target": self.full_target,
             "entry": self.entry,
             "targets": self.targets,
+            "target_quantity_weights": self.target_quantity_weights,
             "stoplosses": self.stoplosses,
             "entry_time": isoformat_none_or_timestamp(self.entry_time),
             "exit_time": isoformat_none_or_timestamp(self.exit_time),
