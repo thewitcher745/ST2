@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+from pathlib import Path
 
 from src.backtest.results_aggregator import ResultsAggregator
 from src.backtest.config_generator import ConfigurationGenerator
@@ -11,6 +12,16 @@ from src.backtest.metrics_calculator import MetricsCalculator
 config = Config()
 logger = logging.getLogger("[BacktestMain]")
 
+
+def get_backtest_output_filepath() -> str:
+    output_dir = config.backtest_output_dir or "outputs"
+    output_path = Path(output_dir)
+
+    if not output_path.is_absolute() and output_path.parent == Path("."):
+        output_path = Path("outputs") / output_path
+
+    return str(output_path / "cases.csv")
+
 params_range_dict = {
     # "lag": [6, 7, 8, 9, 10, 11, 12],
     "target_setup_function": ["small_blocks_refined", "default"],
@@ -21,12 +32,12 @@ params_range_dict = {
         "default",
     ],
     "block_types": ["OB", "BB", "MB", "OB/BB", "OB/MB", "MB/BB", "OB/MB/BB"],
-    "timeframe": ["15m", "30m", "1h"],
+    "timeframe": ["15m", "30m", "1h", "4h"],
     "target_coeff": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5],
     "stoploss_coeff": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5],
     "max_bounces": [1, 2, 3],
 }
-results_aggregator = ResultsAggregator("outputs/cases.csv", params_range_dict)
+results_aggregator = ResultsAggregator(get_backtest_output_filepath(), params_range_dict)
 
 logger.info("New backtest initiation")
 config_gen = ConfigurationGenerator(params_range_dict)
@@ -37,6 +48,8 @@ logger.info(f"{total_cases_count} cases to run.")
 current_count = 1
 
 symbols = ["ETHUSDT"]
+
+print("Getting data and running backtests for ", symbols)
 
 for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:

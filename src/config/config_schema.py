@@ -47,6 +47,7 @@ CONFIG_SCHEMA = {
     "clean": bool,
     "symbols_filename": str,
     "direction": str,
+    "backtest_output_dir": str,
     "cid": str,
     "config_file": str,
 }

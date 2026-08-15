@@ -87,6 +87,7 @@ class Config:
     clean: bool
     symbols_filename: str
     direction: str
+    backtest_output_dir: Optional[str] = None
     cid: Optional[
         str
     ]  # The channel ID that overrides both TG_DEV_CHANNEL_ID and TG_PROD_CHANNEL_ID
@@ -140,6 +141,14 @@ class Config:
             "--cid",
             default=None,
             help="Override the channel ID configurations from the .env.secret file.",
+        )
+        argument_parser.add_argument(
+            "--backtest_output_dir",
+            default=None,
+            help=(
+                "Base directory for backtest outputs. If a simple folder name is "
+                "provided, it will be created under outputs/."
+            ),
         )
         argument_parser.add_argument(
             "--config",
@@ -216,6 +225,7 @@ class Config:
             "-t": "timeframe",
             "--timeframe": "timeframe",
             "--cid": "cid",
+            "--backtest_output_dir": "backtest_output_dir",
             "--config": "config_file",
             "--config_file": "config_file",
         }
