@@ -38,6 +38,17 @@ params_range_dict = {
     "max_bounces": [1, 2, 3],
 }
 results_aggregator = ResultsAggregator(get_backtest_output_filepath(), params_range_dict)
+results_aggregator_long = ResultsAggregator(
+    "cases_long.csv",
+    params_range_dict,
+    output_dir=results_aggregator.output_dir,
+)
+results_aggregator_short = ResultsAggregator(
+    "cases_short.csv",
+    params_range_dict,
+    output_dir=results_aggregator.output_dir,
+)
+metrics_calculator = MetricsCalculator()
 
 logger.info("New backtest initiation")
 config_gen = ConfigurationGenerator(params_range_dict)
@@ -64,13 +75,27 @@ for run_id, config_combo_dict in config_gen:
     positions_df = bt_exec.execute(symbols, start_time, end_time)
     # positions_df[positions_df.exited].to_csv("backtest_positions.csv")
 
-    metrics_dict = MetricsCalculator().calculate(positions_df=positions_df)
+    metrics_dict = metrics_calculator.calculate(positions_df=positions_df)
+    long_metrics_dict = metrics_calculator.calculate(
+        positions_df=positions_df[positions_df.type == "long"]
+    )
+    short_metrics_dict = metrics_calculator.calculate(
+        positions_df=positions_df[positions_df.type == "short"]
+    )
 
     results_aggregator.append_result(run_id, config_combo_dict, metrics_dict)
+    results_aggregator_long.append_result(
+        run_id, config_combo_dict, long_metrics_dict
+    )
+    results_aggregator_short.append_result(
+        run_id, config_combo_dict, short_metrics_dict
+    )
 
     current_count += 1
 
 results_aggregator.to_csv(symbols)
+results_aggregator_long.save_excel_only("cases_long.xlsx")
+results_aggregator_short.save_excel_only("cases_short.xlsx")
 
 engine = VisualizationEngine(results_aggregator)
 engine.generate_all_visualizations(save_pdf=True, save_individual=True)

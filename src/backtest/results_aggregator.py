@@ -14,23 +14,38 @@ logger = logging.getLogger("[BacktestResultsAggregator]")
 class ResultsAggregator:
     """Class uses to combine config combo data and metrics data for that combo."""
 
-    def __init__(self, output_filepath: str, params_range_dict: dict):
+    def __init__(
+        self,
+        output_filepath: str,
+        params_range_dict: dict,
+        output_dir: Path | None = None,
+    ):
         """
         Args:
             output_filepath: Base path for output (will be placed in timestamped folder)
             params_range_dict: The parameter ranges being tested
+            output_dir: Optional explicit output directory to use instead of
+                generating a new timestamped folder.
         """
         self.output_filepath = output_filepath
 
         self.rows: list[dict] = []
         self.params_range_dict = params_range_dict
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.output_dir = Path(output_filepath).parent / self.timestamp
+        self.output_dir = (
+            Path(output_dir)
+            if output_dir is not None
+            else Path(output_filepath).parent / self.timestamp
+        )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def append_result(self, run_id: str, combo_dict: dict, metrics_dict: dict):
         """Adds a row to the list of rows."""
         self.rows.append({"run_id": run_id, **combo_dict, **metrics_dict})
+
+    def to_dataframe(self) -> DataFrame:
+        self.calculate_scores()
+        return DataFrame(self.rows)
 
     def calculate_scores(self):
         """
@@ -111,9 +126,7 @@ class ResultsAggregator:
         Args:
             symbols: List of symbols to write to the config.json
         """
-        self.calculate_scores()
-
-        df = DataFrame(self.rows)
+        df = self.to_dataframe()
 
         # Save CSV
         csv_path = self.output_dir / Path(self.output_filepath).name
@@ -132,6 +145,12 @@ class ResultsAggregator:
         self._save_config_json(symbols)
 
         logger.info(f"Results saved to: {self.output_dir}")
+
+    def save_excel_only(self, output_filename: str):
+        df = self.to_dataframe()
+        excel_path = self.output_dir / output_filename
+        df.to_excel(excel_path, index=False, engine="openpyxl")
+        logger.info(f"Excel results saved to: {excel_path}")
 
     def _save_filtered_excel(self, df: DataFrame):
         """
