@@ -152,7 +152,7 @@ class ResultsAggregator:
         df["score"] = score
         self.rows = df.to_dict("records")
 
-    def _save_config_json(self, symbols: list[str]):
+    def save_config_json(self, symbols: list[str]):
         """
         Save full config with constants and ranges to JSON.
 
@@ -202,7 +202,7 @@ class ResultsAggregator:
         self._save_filtered_excel(df)
 
         # Save config JSON
-        self._save_config_json(symbols)
+        self.save_config_json(symbols)
 
         logger.info(f"Results saved to: {self.output_dir}")
 

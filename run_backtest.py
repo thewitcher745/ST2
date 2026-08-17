@@ -72,6 +72,7 @@ backtest_started_at = datetime.now()
 symbols = ["ETHUSDT"]
 
 print("Getting data and running backtests for ", symbols)
+results_aggregator.save_config_json(symbols)
 
 for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:
