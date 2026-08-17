@@ -20,6 +20,22 @@ config = Config()
 
 class StoplossProvider:
     @staticmethod
+    def _get_refined_base_height(position: Position) -> float:
+        height_percentage = position.base_block.height_percentage
+
+        if (
+            0 <= height_percentage
+            < config.refined_block_height_threshold_percentage
+        ):
+            return (
+                config.refined_block_base_height_percentage
+                * (position.base_block.high + position.base_block.low)
+                / 2
+            )
+
+        return position.base_block.height
+
+    @staticmethod
     def get_stoplosses(position: Position) -> NDArray[float64]:
         method = config.stoploss_setup_function
         return getattr(StoplossProvider, method)(position)
@@ -92,24 +108,14 @@ class StoplossProvider:
         position: Position,
     ) -> NDArray[float64]:
         """
-        Blocks between 0 and 2% don't use the base block height for the stoploss, and instead
-        use 1% of the price as the base height.
+        Small blocks under the configured threshold don't use the base block
+        height for the stoploss, and instead use a configured percentage of the
+        average block price as the base height.
         """
-        height_percentage = position.base_block.height_percentage
         stoploss_coeff = config.stoploss_coeff
 
         sl_array_length = len(position.targets)
-
-        # In small blocks (0-2%) the base height is ignored and replaced by 1% of the
-        #  average base block price.
-        if 0 <= height_percentage < 2:
-            base_height = (
-                0.01 * (position.base_block.high + position.base_block.low) / 2
-            )
-
-        # In other cases the base_block height is used as the foundation for building targets.
-        else:
-            base_height = position.base_block.height
+        base_height = StoplossProvider._get_refined_base_height(position)
 
         if position.type == "long":
             sl_0 = position.entry - stoploss_coeff * base_height
@@ -125,25 +131,16 @@ class StoplossProvider:
         position: Position,
     ) -> NDArray[float64]:
         """
-        Blocks between 0 and 2% don't use the base block height for the stoploss, and instead
-        use 1% of the price as the base height. This function also utilizes trailing-breakeven
-        stoploss setup, moving the stoploss to the entry after the first target is hit.
+        Small blocks under the configured threshold don't use the base block
+        height for the stoploss, and instead use a configured percentage of the
+        average block price as the base height. This function also utilizes
+        trailing-breakeven stoploss setup, moving the stoploss to the entry
+        after the first target is hit.
         """
-        height_percentage = position.base_block.height_percentage
         stoploss_coeff = config.stoploss_coeff
 
         sl_array_length = len(position.targets)
-
-        # In small blocks (0-2%) the base height is ignored and replaced by 1% of the
-        #  average base block price.
-        if 0 <= height_percentage < 2:
-            base_height = (
-                0.01 * (position.base_block.high + position.base_block.low) / 2
-            )
-
-        # In other cases the base_block height is used as the foundation for building targets.
-        else:
-            base_height = position.base_block.height
+        base_height = StoplossProvider._get_refined_base_height(position)
 
         if position.type == "long":
             sl_0 = position.entry - stoploss_coeff * base_height
@@ -159,25 +156,16 @@ class StoplossProvider:
         position: Position,
     ) -> NDArray[float64]:
         """
-        Blocks between 0 and 2% don't use the base block height for the stoploss, and instead
-        use 1% of the price as the base height. This function also utilizes trailing-breakeven
-        stoploss setup, moving the stoploss to the entry after the second target is hit.
+        Small blocks under the configured threshold don't use the base block
+        height for the stoploss, and instead use a configured percentage of the
+        average block price as the base height. This function also utilizes
+        trailing-breakeven stoploss setup, moving the stoploss to the entry
+        after the second target is hit.
         """
-        height_percentage = position.base_block.height_percentage
         stoploss_coeff = config.stoploss_coeff
 
         sl_array_length = len(position.targets)
-
-        # In small blocks (0-2%) the base height is ignored and replaced by 1% of the
-        #  average base block price.
-        if 0 <= height_percentage < 2:
-            base_height = (
-                0.01 * (position.base_block.high + position.base_block.low) / 2
-            )
-
-        # In other cases the base_block height is used as the foundation for building targets.
-        else:
-            base_height = position.base_block.height
+        base_height = StoplossProvider._get_refined_base_height(position)
 
         if position.type == "long":
             sl_0 = position.entry - stoploss_coeff * base_height

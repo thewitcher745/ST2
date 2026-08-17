@@ -24,6 +24,22 @@ class TargetPlan:
 
 class TargetProvider:
     @staticmethod
+    def _get_refined_base_height(position: Position) -> float:
+        height_percentage = position.base_block.height_percentage
+
+        if (
+            0 <= height_percentage
+            < config.refined_block_height_threshold_percentage
+        ):
+            return (
+                config.refined_block_base_height_percentage
+                * (position.base_block.high + position.base_block.low)
+                / 2
+            )
+
+        return position.base_block.height
+
+    @staticmethod
     def get_target_plan(position: Position) -> TargetPlan:
         method = config.target_setup_function
         return getattr(TargetProvider, method)(position)
@@ -99,21 +115,11 @@ class TargetProvider:
         position: Position,
     ) -> TargetPlan:
         """
-        4 evenly spaced targets for blocks between 2 and 3% height%. Blocks between 0 and 2%
-        don't use the base block height, and instead use 1% of the price as the base height.
+        4 evenly spaced targets. Small blocks under the configured threshold
+        don't use the base block height, and instead use a configured
+        percentage of the average block price as the base height.
         """
-        height_percentage = position.base_block.height_percentage
-
-        # In small blocks (0-2%) the base height is ignored and replaced by 1% of the
-        #  average base block price.
-        if 0 <= height_percentage < 2:
-            base_height = (
-                0.01 * (position.base_block.high + position.base_block.low) / 2
-            )
-
-        # In other cases the base_block height is used as the foundation for building targets.
-        else:
-            base_height = position.base_block.height
+        base_height = TargetProvider._get_refined_base_height(position)
 
         targets = TargetProvider._get_evenly_spaced_targets(position, base_height)
 
