@@ -225,12 +225,20 @@ class ResultsAggregator:
     def _save_filtered_excel(self, df: DataFrame):
         """
         Save filtered Excel with:
-        - Filter: total_net_profit > 0 and total_winrate >= 50
+        - Filter: total_net_profit > 0
+        - Filter: total_winrate >= 30
+        - Filter: max_consecutive_negative_months <= 1
+        - Filter: negative_months <= 2
         - Separate sheets per timeframe
         - Reordered columns: config params, key metrics, then rest
         """
         # Filter rows
-        filtered_df = df[df["total_net_profit"] > 0].copy()
+        filtered_df = df[
+            (df["total_net_profit"] > 0)
+            & (df["total_winrate"] >= 30)
+            & (df["max_consecutive_negative_months"] <= 1)
+            & (df["negative_months"] <= 2)
+        ].copy()
 
         if filtered_df.empty:
             logger.info("No rows passed the filter criteria")
