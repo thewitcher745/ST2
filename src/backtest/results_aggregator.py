@@ -45,7 +45,66 @@ class ResultsAggregator:
 
     def to_dataframe(self) -> DataFrame:
         self.calculate_scores()
-        return DataFrame(self.rows)
+        return self._reorder_columns(DataFrame(self.rows))
+
+    def _reorder_columns(self, df: DataFrame) -> DataFrame:
+        if df.empty:
+            return df
+
+        config_cols = ["run_id"] + list(self.params_range_dict.keys())
+
+        summary_metric_cols = [
+            "total_position_count",
+            "total_winrate",
+            "total_net_profit",
+            "average_target_hit",
+            "average_trades_per_month",
+            "average_monthly_profit_overall",
+            "no_trade_months",
+            "max_consecutive_negative_months",
+            "average_trade_duration",
+            "total_drawdown",
+            "average_monthly_drawdown_overall",
+            "total_profit_2026",
+            "performance_2026",
+            "average_monthly_profit_2026",
+            "average_monthly_drawdown_2026",
+            "total_performance",
+            "score",
+        ]
+
+        monthly_prefix_order = [
+            "net_profit_",
+            "winrate_",
+            "position_count_",
+            "drawdown_",
+        ]
+
+        present_config_cols = [col for col in config_cols if col in df.columns]
+        present_summary_metric_cols = [
+            col for col in summary_metric_cols if col in df.columns
+        ]
+
+        ordered_monthly_cols: list[str] = []
+        for prefix in monthly_prefix_order:
+            ordered_monthly_cols.extend(
+                sorted(
+                    [
+                        col
+                        for col in df.columns
+                        if col.startswith(prefix) and col not in ordered_monthly_cols
+                    ]
+                )
+            )
+
+        ordered_cols = (
+            present_config_cols + present_summary_metric_cols + ordered_monthly_cols
+        )
+        ordered_cols.extend(
+            [col for col in df.columns if col not in ordered_cols]
+        )
+
+        return df[ordered_cols]
 
     def calculate_scores(self):
         """
@@ -136,7 +195,7 @@ class ResultsAggregator:
         excel_path = (
             self.output_dir / Path(self.output_filepath).with_suffix(".xlsx").name
         )
-        df.to_excel(excel_path, index=False, engine="openpyxl")
+        self._save_full_excel(df, excel_path)
 
         # Save filtered Excel
         self._save_filtered_excel(df)
@@ -149,8 +208,18 @@ class ResultsAggregator:
     def save_excel_only(self, output_filename: str):
         df = self.to_dataframe()
         excel_path = self.output_dir / output_filename
-        df.to_excel(excel_path, index=False, engine="openpyxl")
+        self._save_full_excel(df, excel_path)
         logger.info(f"Excel results saved to: {excel_path}")
+
+    def _save_full_excel(self, df: DataFrame, excel_path: Path):
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            if "case_name" in df.columns:
+                for case_name in df["case_name"].dropna().unique():
+                    case_df = df[df["case_name"] == case_name]
+                    sheet_name = str(case_name)[:31]
+                    case_df.to_excel(writer, sheet_name=sheet_name, index=False)
+            else:
+                df.to_excel(writer, sheet_name="All", index=False)
 
     def _save_filtered_excel(self, df: DataFrame):
         """
@@ -166,23 +235,7 @@ class ResultsAggregator:
             logger.info("No rows passed the filter criteria")
             return
 
-        # Identify config param columns (from params_range_dict)
-        config_cols = ["run_id"] + list(self.params_range_dict.keys())
-
-        # Key metrics to place after config params
-        key_metrics = [
-            "total_net_profit",
-            "total_winrate",
-            "average_trades_per_month",
-            "score",
-        ]
-
-        # Reorder columns
-        other_cols = [
-            col for col in filtered_df.columns if col not in config_cols + key_metrics
-        ]
-        ordered_cols = config_cols + key_metrics + other_cols
-        filtered_df = filtered_df[ordered_cols]
+        filtered_df = self._reorder_columns(filtered_df)
 
         filtered_df = cast(DataFrame, filtered_df)
 
