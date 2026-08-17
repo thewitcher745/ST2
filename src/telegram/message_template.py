@@ -66,7 +66,8 @@ Take-Profit Targets:"""
 
         if config.validation:
             message += "\n\nAdditional info:"
-            message += f"\nID:{position.id}"
-            message += f"\nTimeframe:{config.timeframe}"
+            message += f"\nID: {position.id}"
+            message += f"\nStart time: {position.base_block.start_time}"
+            message += f"\nTimeframe: {config.timeframe}"
 
         return message
