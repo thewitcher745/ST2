@@ -48,7 +48,7 @@ class StoplossProvider:
     @staticmethod
     def trailing_breakeven_t1(position: Position) -> NDArray[float64]:
         """
-        No trailing stoploss configuration. Fixed stoploss all the way.
+        Trailing stoploss, moved to entry on target 1
         """
         base_height = position.base_block.height
         stoploss_coeff = config.stoploss_coeff
