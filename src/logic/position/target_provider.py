@@ -27,10 +27,7 @@ class TargetProvider:
     def _get_refined_base_height(position: Position) -> float:
         height_percentage = position.base_block.height_percentage
 
-        if (
-            0 <= height_percentage
-            < config.refined_block_height_threshold_percentage
-        ):
+        if 0 <= height_percentage < config.refined_block_height_threshold_percentage:
             return (
                 config.refined_block_base_height_percentage
                 * (position.base_block.high + position.base_block.low)
@@ -97,6 +94,42 @@ class TargetProvider:
         return TargetProvider._build_target_plan(targets)
 
     @staticmethod
+    def default_t1_only(position: Position) -> TargetPlan:
+        """
+        1 target. Spaced by 1 block height * target_coeff from the entry.
+        """
+        base_height = position.base_block.height
+        targets = TargetProvider._get_evenly_spaced_targets(
+            position, base_height, n_targets=1
+        )
+
+        return TargetProvider._build_target_plan(targets)
+
+    @staticmethod
+    def default_t1_t2_only(position: Position) -> TargetPlan:
+        """
+        2 evenly spaced targets. Spaced by 1 block height * target_coeff between them.
+        """
+        base_height = position.base_block.height
+        targets = TargetProvider._get_evenly_spaced_targets(
+            position, base_height, n_targets=2
+        )
+
+        return TargetProvider._build_target_plan(targets)
+
+    @staticmethod
+    def default_t1_t2_t3_only(position: Position) -> TargetPlan:
+        """
+        3 evenly spaced targets. Spaced by 1 block height * target_coeff between them.
+        """
+        base_height = position.base_block.height
+        targets = TargetProvider._get_evenly_spaced_targets(
+            position, base_height, n_targets=3
+        )
+
+        return TargetProvider._build_target_plan(targets)
+
+    @staticmethod
     def default_t1_half_rest_even(position: Position) -> TargetPlan:
         """
         4 evenly spaced targets with 50% of quantity taken at target 1 and the
@@ -126,6 +159,57 @@ class TargetProvider:
         return TargetProvider._build_target_plan(targets)
 
     @staticmethod
+    def small_blocks_refined_t1_only(
+        position: Position,
+    ) -> TargetPlan:
+        """
+        1 target. Small blocks under the configured threshold don't use the
+        base block height, and instead use a configured percentage of the
+        average block price as the base height.
+        """
+        base_height = TargetProvider._get_refined_base_height(position)
+
+        targets = TargetProvider._get_evenly_spaced_targets(
+            position, base_height, n_targets=1
+        )
+
+        return TargetProvider._build_target_plan(targets)
+
+    @staticmethod
+    def small_blocks_refined_t1_t2_only(
+        position: Position,
+    ) -> TargetPlan:
+        """
+        2 evenly spaced targets. Small blocks under the configured threshold
+        don't use the base block height, and instead use a configured
+        percentage of the average block price as the base height.
+        """
+        base_height = TargetProvider._get_refined_base_height(position)
+
+        targets = TargetProvider._get_evenly_spaced_targets(
+            position, base_height, n_targets=2
+        )
+
+        return TargetProvider._build_target_plan(targets)
+
+    @staticmethod
+    def small_blocks_refined_t1_t2_t3_only(
+        position: Position,
+    ) -> TargetPlan:
+        """
+        3 evenly spaced targets. Small blocks under the configured threshold
+        don't use the base block height, and instead use a configured
+        percentage of the average block price as the base height.
+        """
+        base_height = TargetProvider._get_refined_base_height(position)
+
+        targets = TargetProvider._get_evenly_spaced_targets(
+            position, base_height, n_targets=3
+        )
+
+        return TargetProvider._build_target_plan(targets)
+
+    @staticmethod
     def small_blocks_refined_t1_half_rest_even(
         position: Position,
     ) -> TargetPlan:
@@ -139,6 +223,4 @@ class TargetProvider:
             len(target_plan.prices)
         )
 
-        return TargetProvider._build_target_plan(
-            target_plan.prices, quantity_weights
-        )
+        return TargetProvider._build_target_plan(target_plan.prices, quantity_weights)
