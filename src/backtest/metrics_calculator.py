@@ -35,6 +35,7 @@ class MetricsCalculator:
             "average_monthly_profit_overall": self._average_monthly_profit_overall(
                 monthly_groups
             ),
+            "negative_months": self._count_negative_months(monthly_groups),
             "no_trade_months": self._count_no_trade_months(
                 time_indexed_df, monthly_groups
             ),
@@ -171,6 +172,11 @@ class MetricsCalculator:
         no_trade_months = [m for m in expected_months if m not in active_months]
 
         return len(no_trade_months)
+
+    @staticmethod
+    def _count_negative_months(monthly_groups: dict[str, DataFrame]) -> int:
+        """Count months where net profit is negative."""
+        return sum(1 for df in monthly_groups.values() if df.net_profit.sum() < 0)
 
     @staticmethod
     def _net_profit_per_month(monthly_groups: dict[str, DataFrame]) -> dict:

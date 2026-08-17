@@ -61,6 +61,7 @@ class ResultsAggregator:
             "average_trades_per_month",
             "average_monthly_profit_overall",
             "no_trade_months",
+            "negative_months",
             "max_consecutive_negative_months",
             "average_trade_duration",
             "total_drawdown",
