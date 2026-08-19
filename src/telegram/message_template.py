@@ -24,6 +24,8 @@ class MessageTemplate:
             return ""
         elif "trailing_breakeven_t1" in config.stoploss_setup_function:
             return "\n\nTrailing Configuration:\nStop: Breakeven -\nTrigger: Target (1)"
+        elif "trailing_breakeven_t2" in config.stoploss_setup_function:
+            return "\n\nTrailing Configuration:\nStop: Breakeven -\nTrigger: Target (2)"
         else:
             return ""
 
