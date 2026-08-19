@@ -53,16 +53,26 @@ class ResultsAggregator:
 
         config_cols = ["run_id"] + list(self.params_range_dict.keys())
 
-        summary_metric_cols = [
+        core_metric_cols = [
             "total_position_count",
             "total_winrate",
             "total_net_profit",
-            "average_target_hit",
-            "average_trades_per_month",
-            "average_monthly_profit_overall",
             "no_trade_months",
             "negative_months",
             "max_consecutive_negative_months",
+        ]
+
+        monthly_prefix_order = [
+            "winrate_",
+            "net_profit_",
+            "drawdown_",
+            "position_count_",
+        ]
+
+        tail_metric_cols = [
+            "average_target_hit",
+            "average_trades_per_month",
+            "average_monthly_profit_overall",
             "average_trade_duration",
             "total_drawdown",
             "average_monthly_drawdown_overall",
@@ -74,16 +84,12 @@ class ResultsAggregator:
             "score",
         ]
 
-        monthly_prefix_order = [
-            "net_profit_",
-            "winrate_",
-            "position_count_",
-            "drawdown_",
-        ]
-
         present_config_cols = [col for col in config_cols if col in df.columns]
-        present_summary_metric_cols = [
-            col for col in summary_metric_cols if col in df.columns
+        present_core_metric_cols = [
+            col for col in core_metric_cols if col in df.columns
+        ]
+        present_tail_metric_cols = [
+            col for col in tail_metric_cols if col in df.columns
         ]
 
         ordered_monthly_cols: list[str] = []
@@ -99,7 +105,10 @@ class ResultsAggregator:
             )
 
         ordered_cols = (
-            present_config_cols + present_summary_metric_cols + ordered_monthly_cols
+            present_config_cols
+            + present_core_metric_cols
+            + ordered_monthly_cols
+            + present_tail_metric_cols
         )
         ordered_cols.extend(
             [col for col in df.columns if col not in ordered_cols]
