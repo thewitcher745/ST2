@@ -27,9 +27,10 @@ class TargetProvider:
     def _get_refined_base_height(position: Position) -> float:
         height_percentage = position.base_block.height_percentage
 
-        if 0 <= height_percentage < config.refined_block_height_threshold_percentage:
+        if 0 <= height_percentage < config.refined_block_height_percentage:
             return (
-                config.refined_block_base_height_percentage
+                config.refined_block_height_percentage
+                / 100
                 * (position.base_block.high + position.base_block.low)
                 / 2
             )
