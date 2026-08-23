@@ -5,6 +5,7 @@ Contains type casting functions for each config variable.
 CONFIG_SCHEMA = {
     "lag": int,
     "fib_factor": float,
+    "zigzag_method": str,
     "timeframe": str,
     "target_coeff": float,
     "stoploss_coeff": float,

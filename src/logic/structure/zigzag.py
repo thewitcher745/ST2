@@ -42,12 +42,20 @@ class Zigzag:
         is_valley_array = np.zeros(n, dtype=bool)
 
         # A candle is a pivot if its extreme is greater/less than the window EXCLUDING itself
-        is_peak_array[self.window_size - 1 :] = highs[self.window_size - 1 :] > np.max(
-            win_highs[:, :-1], axis=1
-        )
-        is_valley_array[self.window_size - 1 :] = lows[self.window_size - 1 :] < np.min(
-            win_lows[:, :-1], axis=1
-        )
+        if config.zigzag_method == "legacy":
+            is_peak_array[self.window_size - 1 :] = highs[
+                self.window_size - 1 :
+            ] > np.max(win_highs[:, :-1], axis=1)
+            is_valley_array[self.window_size - 1 :] = lows[
+                self.window_size - 1 :
+            ] < np.min(win_lows[:, :-1], axis=1)
+        else:
+            is_peak_array[self.window_size - 1 :] = highs[
+                self.window_size - 1 :
+            ] >= np.max(win_highs[:, :-1], axis=1)
+            is_valley_array[self.window_size - 1 :] = lows[
+                self.window_size - 1 :
+            ] <= np.min(win_lows[:, :-1], axis=1)
 
         pivots = []
         last_type = 0  # 1: Peak, -1: Valley
@@ -56,9 +64,15 @@ class Zigzag:
             nonlocal last_type
             if last_type == p_type:
                 # Extension logic: only update if the new value is more extreme
-                if (p_type == 1 and val > pivots[-1]["pivot_value"]) or (
-                    p_type == -1 and val < pivots[-1]["pivot_value"]
-                ):
+                if config.zigzag_method == "legacy":
+                    extremity_condition = (
+                        p_type == 1 and val > pivots[-1]["pivot_value"]
+                    ) or (p_type == -1 and val < pivots[-1]["pivot_value"])
+                else:
+                    extremity_condition = (
+                        p_type == 1 and val >= pivots[-1]["pivot_value"]
+                    ) or (p_type == -1 and val <= pivots[-1]["pivot_value"])
+                if extremity_condition:
                     pivots[-1] = self._make_dict(idx, time, val, p_type, idx)
             else:
                 # New leg logic: current candle confirms the previous pivot's completion
@@ -74,13 +88,22 @@ class Zigzag:
             valley = is_valley_array[i]
 
             if peak and valley:
-                # Intraday order approximation via candle color
-                if closes[i] < opens[i]:  # Red: High then Low
-                    update_pivot(i, times[i], highs[i], 1)
-                    update_pivot(i, times[i], lows[i], -1)
-                else:  # Green: Low then High
-                    update_pivot(i, times[i], lows[i], -1)
-                    update_pivot(i, times[i], highs[i], 1)
+                if config.zigzag_method == "legacy":
+                    # Intraday order approximation via candle color
+                    if closes[i] < opens[i]:  # Red: High then Low
+                        update_pivot(i, times[i], highs[i], 1)
+                        update_pivot(i, times[i], lows[i], -1)
+                    else:  # Green: Low then High
+                        update_pivot(i, times[i], lows[i], -1)
+                        update_pivot(i, times[i], highs[i], 1)
+
+                else:
+                    # If a candle breaks in both directions, assume a leg extension
+                    if last_type == 1:
+                        update_pivot(i, times[i], highs[i], 1)
+                    else:
+                        update_pivot(i, times[i], lows[i], -1)
+
             elif peak:
                 update_pivot(i, times[i], highs[i], 1)
             elif valley:

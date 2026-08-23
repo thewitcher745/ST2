@@ -41,6 +41,7 @@ class Config:
     # Type declarations
     lag: int
     fib_factor: float
+    zigzag_method: str
     timeframe: str
     target_coeff: float
     stoploss_coeff: float
