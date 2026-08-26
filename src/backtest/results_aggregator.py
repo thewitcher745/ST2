@@ -63,8 +63,8 @@ class ResultsAggregator:
         ]
 
         monthly_prefix_order = [
-            "winrate_",
             "net_profit_",
+            "winrate_",
             "drawdown_",
             "position_count_",
         ]
@@ -110,9 +110,7 @@ class ResultsAggregator:
             + ordered_monthly_cols
             + present_tail_metric_cols
         )
-        ordered_cols.extend(
-            [col for col in df.columns if col not in ordered_cols]
-        )
+        ordered_cols.extend([col for col in df.columns if col not in ordered_cols])
 
         return df[ordered_cols]
 
@@ -161,7 +159,9 @@ class ResultsAggregator:
         df["score"] = score
         self.rows = df.to_dict("records")
 
-    def save_config_json(self, symbols: list[str]):
+    def save_config_json(
+        self, symbols: list[str], extra_config: dict[str, object] | None = None
+    ):
         """
         Save full config with constants and ranges to JSON.
 
@@ -183,11 +183,14 @@ class ResultsAggregator:
             else:
                 full_config[attr] = value
 
+        if extra_config:
+            full_config.update(extra_config)
+
         config_path = self.output_dir / "config.json"
         with open(config_path, "w") as f:
             json.dump(full_config, f, indent=2, default=str)
 
-    def to_csv(self, symbols: list[str]):
+    def to_csv(self, symbols: list[str], extra_config: dict[str, object] | None = None):
         """
         Creates a pandas dataframe with the rows and saves to timestamped folder.
         Also saves the config JSON and Excel files.
@@ -211,7 +214,7 @@ class ResultsAggregator:
         self._save_filtered_excel(df)
 
         # Save config JSON
-        self.save_config_json(symbols)
+        self.save_config_json(symbols, extra_config=extra_config)
 
         logger.info(f"Results saved to: {self.output_dir}")
 

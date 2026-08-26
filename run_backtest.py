@@ -11,6 +11,8 @@ from src.backtest.metrics_calculator import MetricsCalculator
 
 config = Config()
 logger = logging.getLogger("[BacktestMain]")
+BACKTEST_START_DATE = "20260101"
+BACKTEST_END_DATE = "20260801"
 
 
 def get_backtest_output_filepath() -> str:
@@ -72,7 +74,13 @@ backtest_started_at = datetime.now()
 symbols = ["ETHUSDT"]
 
 print("Getting data and running backtests for ", symbols)
-results_aggregator.save_config_json(symbols)
+results_aggregator.save_config_json(
+    symbols,
+    extra_config={
+        "backtest_start_date": BACKTEST_START_DATE,
+        "backtest_end_date": BACKTEST_END_DATE,
+    },
+)
 
 for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:
@@ -97,8 +105,8 @@ for run_id, config_combo_dict in config_gen:
     config_gen.override_config_with_combo(config_combo_dict)
     bt_exec = BacktestExecutor()
 
-    start_time = datetime(year=2026, month=1, day=1)
-    end_time = datetime(year=2026, month=8, day=1)
+    start_time = datetime.strptime(BACKTEST_START_DATE, "%Y%m%d")
+    end_time = datetime.strptime(BACKTEST_END_DATE, "%Y%m%d")
 
     positions_df = bt_exec.execute(symbols, start_time, end_time)
     # positions_df[positions_df.exited].to_csv("backtest_positions.csv")
@@ -119,7 +127,13 @@ for run_id, config_combo_dict in config_gen:
 
     current_count += 1
 
-results_aggregator.to_csv(symbols)
+results_aggregator.to_csv(
+    symbols,
+    extra_config={
+        "backtest_start_date": BACKTEST_START_DATE,
+        "backtest_end_date": BACKTEST_END_DATE,
+    },
+)
 results_aggregator_long.save_excel_only("cases_long.xlsx")
 results_aggregator_short.save_excel_only("cases_short.xlsx")
 
