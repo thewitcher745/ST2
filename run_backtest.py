@@ -86,7 +86,7 @@ for run_id, config_combo_dict in config_gen:
     if current_count % 10 == 0:
         logger.info(f"Running case {current_count}/{total_cases_count}")
 
-    if current_count % 200 == 0:
+    if current_count % 100 == 0:
         now = datetime.now()
         elapsed_seconds = (now - backtest_started_at).total_seconds()
         completed_cases = current_count - 1
