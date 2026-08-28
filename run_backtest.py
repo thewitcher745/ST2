@@ -34,17 +34,43 @@ def format_duration(seconds: float) -> str:
 
 params_range_dict = {
     # "lag": [6, 7, 8, 9, 10, 11, 12],
-    "target_setup_function": ["small_blocks_refined", "default"],
+    "target_setup_function": [
+        "small_blocks_refined_t1_only",
+        "default_t1_only",
+        # "small_blocks_refined_t1_t2_only",
+        # "default_t1_t2_only",
+        # "small_blocks_refined_t1_t2_t3_only",
+        # "default_t1_t2_t3_only",
+    ],
     "stoploss_setup_function": [
-        "small_blocks_refined_no_trailing",
-        "small_blocks_refined_trailing_breakeven_t1",
-        "trailing_breakeven_t1",
         "default",
+        "small_blocks_refined_no_trailing",
+        # "small_blocks_refined_trailing_breakeven_t1",
+        # "trailing_breakeven_t1",
+        # "small_blocks_refined_trailing_breakeven_t2",
+        # "trailing_breakeven_t2",
     ],
     "block_types": ["OB", "BB", "MB", "OB/BB", "OB/MB", "MB/BB", "OB/MB/BB"],
-    "timeframe": ["15m", "30m", "1h", "4h"],
-    "target_coeff": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5],
-    "stoploss_coeff": [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5],
+    "timeframe": ["4h"],
+    "target_coeff": [
+        0.5,
+        0.6,
+        0.75,
+        1.0,
+        1.1,
+        1.2,
+        1.3,
+        1.4,
+        1.5,
+        1.6,
+        1.75,
+        2,
+        2.25,
+        2.5,
+        2.75,
+        3,
+    ],
+    "stoploss_coeff": [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.75, 2, 2.25, 2.5, 2.75, 3],
     "max_bounces": [1, 2, 3],
 }
 results_aggregator = ResultsAggregator(
@@ -71,7 +97,7 @@ logger.info(f"{total_cases_count} cases to run.")
 current_count = 1
 backtest_started_at = datetime.now()
 
-symbols = ["ETHUSDT"]
+symbols = ["BTCUSDT"]
 
 print("Getting data and running backtests for ", symbols)
 results_aggregator.save_config_json(
@@ -90,7 +116,9 @@ for run_id, config_combo_dict in config_gen:
         now = datetime.now()
         elapsed_seconds = (now - backtest_started_at).total_seconds()
         completed_cases = current_count - 1
-        average_case_duration = elapsed_seconds / completed_cases if completed_cases else 0
+        average_case_duration = (
+            elapsed_seconds / completed_cases if completed_cases else 0
+        )
         remaining_cases = total_cases_count - completed_cases
         eta_seconds = average_case_duration * remaining_cases
         estimated_completion = datetime.fromtimestamp(now.timestamp() + eta_seconds)
