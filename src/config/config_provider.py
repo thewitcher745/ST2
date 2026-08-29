@@ -86,6 +86,7 @@ class Config:
     clear_state: bool
     clear_klines: bool
     dry: bool
+    shutdown: bool
     clean: bool
     symbols_filename: str
     direction: str
@@ -119,6 +120,11 @@ class Config:
             action="store_true",
             help="Clears all caches and logs before running.",
         )  # Cleans everything
+        argument_parser.add_argument(
+            "--shutdown",
+            action="store_true",
+            help="Shuts down the host system after the backtest and outputs finish.",
+        )
         argument_parser.add_argument(
             "-s",
             "--symbols_filename",

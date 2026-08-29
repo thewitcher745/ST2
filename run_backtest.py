@@ -1,5 +1,8 @@
 from datetime import datetime
+import os
 import logging
+import platform
+import subprocess
 from pathlib import Path
 
 from src.backtest.results_aggregator import ResultsAggregator
@@ -30,6 +33,17 @@ def format_duration(seconds: float) -> str:
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def shutdown_system() -> None:
+    if os.name == "nt":
+        command = ["shutdown", "/s", "/t", "0"]
+    elif "microsoft" in platform.release().lower() or os.getenv("WSL_DISTRO_NAME"):
+        command = ["cmd.exe", "/c", "shutdown", "/s", "/t", "0"]
+    else:
+        command = ["shutdown", "-h", "now"]
+
+    subprocess.run(command, check=False)
 
 
 params_range_dict = {
@@ -167,3 +181,6 @@ results_aggregator_short.save_excel_only("cases_short.xlsx")
 
 engine = VisualizationEngine(results_aggregator)
 engine.generate_all_visualizations(save_pdf=True, save_individual=True)
+
+if config.shutdown:
+    shutdown_system()

@@ -52,4 +52,5 @@ CONFIG_SCHEMA = {
     "backtest_output_dir": str,
     "cid": str,
     "config_file": str,
+    "shutdown": bool,
 }
