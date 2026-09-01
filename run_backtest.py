@@ -14,7 +14,7 @@ from src.backtest.metrics_calculator import MetricsCalculator
 
 config = Config()
 logger = logging.getLogger("[BacktestMain]")
-BACKTEST_START_DATE = "20260101"
+BACKTEST_START_DATE = "20260201"
 BACKTEST_END_DATE = "20260801"
 
 
