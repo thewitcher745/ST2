@@ -14,8 +14,6 @@ from src.backtest.metrics_calculator import MetricsCalculator
 
 config = Config()
 logger = logging.getLogger("[BacktestMain]")
-BACKTEST_START_DATE = "20260201"
-BACKTEST_END_DATE = "20260801"
 
 
 def get_backtest_output_filepath() -> str:
@@ -45,6 +43,10 @@ def shutdown_system() -> None:
 
     subprocess.run(command, check=False)
 
+
+BACKTEST_START_DATE = "20260101"
+BACKTEST_END_DATE = "20260801"
+symbols = ["XAUUSDT"]
 
 params_range_dict = {
     # "lag": [6, 7, 8, 9, 10, 11, 12],
@@ -85,7 +87,7 @@ params_range_dict = {
         3,
     ],
     "stoploss_coeff": [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.75, 2, 2.25, 2.5, 2.75, 3],
-    "max_bounces": [1, 2, 3],
+    "max_bounces": [1, 2],
 }
 results_aggregator = ResultsAggregator(
     get_backtest_output_filepath(), params_range_dict
@@ -111,7 +113,6 @@ logger.info(f"{total_cases_count} cases to run.")
 current_count = 1
 backtest_started_at = datetime.now()
 
-symbols = ["BTCUSDT"]
 
 print("Getting data and running backtests for ", symbols)
 results_aggregator.save_config_json(
