@@ -138,6 +138,9 @@ class SignalManager:
                     continue
 
                 if position.base_block.end_index is None:
+                    print(
+                        f"Position with Id {position.id} has no end date set, not cancelling."
+                    )
                     continue
 
                 if self._is_signal_cancelable(position):
