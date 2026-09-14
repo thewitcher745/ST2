@@ -95,7 +95,11 @@ class SignalManager:
             old_positions_set = self._current_active_positions
 
         # Positions that were there in the previous frame but not in the new update's active positions
-        outdated_positions = old_positions_set - updated_positions_set
+        outdated_position_ids = set(
+            [position.id for position in old_positions_set]
+        ) - set([position.id for position in updated_positions_set])
+
+        logger.info("")
 
         # Positions that now exist but haven't been sent yet
         pending_positions = []
@@ -116,7 +120,7 @@ class SignalManager:
         # Debug logging with timer
         if self._should_log_debug():
             logger.debug(
-                f"[{self._symbol}] Outdated positions: {[b.id for b in outdated_positions]}"
+                f"[{self._symbol}] Outdated positions: {outdated_position_ids}"
             )
             logger.debug(
                 f"[{self._symbol}] Pending positions: {[b.id for b in pending_positions]}"
@@ -129,8 +133,11 @@ class SignalManager:
         _save_state_required = False
 
         # Cancel the outdated positions
-        for position in outdated_positions:
-            if position.id in self._sent_positions_message_ids.keys():
+        for position in updated_positions_set:
+            if (
+                position.id in self._sent_positions_message_ids.keys()
+                and position.id in outdated_position_ids
+            ):
                 if position.entered:
                     logger.debug(
                         f"[{self._symbol}] Position {position.id} is entered, skipping cancellation"
@@ -139,7 +146,7 @@ class SignalManager:
 
                 if self._is_signal_cancelable(position):
                     logger.debug(
-                        f"[{self._symbol}] Outdated positions: {[b.id for b in outdated_positions]}"
+                        f"[{self._symbol}] Outdated positions: {outdated_position_ids}"
                     )
                     logger.debug(
                         f"[{self._symbol}] Pending positions: {[b.id for b in pending_positions]}"
@@ -152,7 +159,7 @@ class SignalManager:
                     reply_id = self._sent_positions_message_ids[position.id]
 
                     # Sometimes, if the message has been deleted or is otherwise unreachable, Telegram returns
-                    # an error. This shouldn't happen, but it's safer to handle the error here as well.
+                    # an error. This sthouldn't happen, but it's safer to handle the error here as well.
                     logger.info(
                         f"[{self._symbol}] Canceling position with ID {position.id} for symbol {self._symbol}, reply_id {reply_id}"
                     )
