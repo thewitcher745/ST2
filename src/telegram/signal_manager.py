@@ -99,8 +99,6 @@ class SignalManager:
             [position.id for position in old_positions_set]
         ) - set([position.id for position in updated_positions_set])
 
-        logger.info("")
-
         # Positions that now exist but haven't been sent yet
         pending_positions = []
         for position in updated_positions_set:
