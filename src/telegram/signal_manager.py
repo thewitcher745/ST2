@@ -131,7 +131,7 @@ class SignalManager:
         _save_state_required = False
 
         # Cancel the outdated positions
-        for position in updated_positions_set:
+        for position in old_positions_set:
             if (
                 position.id in self._sent_positions_message_ids.keys()
                 and position.id in outdated_position_ids
