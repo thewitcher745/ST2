@@ -143,13 +143,13 @@ class SignalManager:
                     continue
 
                 if self._is_signal_cancelable(position):
-                    logger.debug(
+                    logger.info(
                         f"[{self._symbol}] Outdated positions: {outdated_position_ids}"
                     )
-                    logger.debug(
+                    logger.info(
                         f"[{self._symbol}] Pending positions: {[b.id for b in pending_positions]}"
                     )
-                    logger.debug(
+                    logger.info(
                         f"[{self._symbol}] Already sent: {list(self._sent_positions_message_ids.keys())}"
                     )
 
