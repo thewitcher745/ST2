@@ -69,9 +69,6 @@ params_range_dict = {
     "block_types": ["OB", "BB", "MB", "OB/BB", "OB/MB", "MB/BB", "OB/MB/BB"],
     "timeframe": ["4h"],
     "target_coeff": [
-        0.5,
-        0.6,
-        0.75,
         1.0,
         1.1,
         1.2,
