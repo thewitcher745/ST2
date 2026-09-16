@@ -95,9 +95,9 @@ class PositionSimulator:
             klines_data: The klines data to use for the simulation.
             search_start_index: The index to start searching for events from.
         """
-        index_offset = pos.base_block.start_index + 1
+        index_offset = pos.base_block.start_index
         if search_start_index is not None:
-            index_offset = search_start_index + 1
+            index_offset = search_start_index
         end_index = pos.base_block.end_index + 1 if pos.base_block.end_index else None
 
         return (

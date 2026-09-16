@@ -33,7 +33,7 @@ class PositionManager:
         for block in blocks:
             type = "long" if block.direction == "bullish" else "short"
             position = Position(block)
-            search_start_index = position.base_block.start_index + 1
+            search_start_index = position.base_block.start_index
 
             # Simulate until the block can't have any more bounces
             while True:
