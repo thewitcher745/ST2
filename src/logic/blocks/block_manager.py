@@ -177,7 +177,12 @@ class BlockManager:
             #     current_invalidation_price = self.all_blocks[direction][block_counter]
 
             for block_counter, block in enumerate(self.all_blocks[direction]):
-                current_end_index = block.check_end_candle(klines_data.close)
+                end_check_window = (
+                    klines_data.high
+                    if block.direction == "bearish"
+                    else klines_data.low
+                )
+                current_end_index = block.check_end_candle(end_check_window)
 
                 if current_end_index:
                     current_end_time = klines_data.time[current_end_index]
