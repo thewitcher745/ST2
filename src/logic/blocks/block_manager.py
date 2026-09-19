@@ -193,7 +193,7 @@ class BlockManager:
                     # If the end index found (with the +1 added) is larger than the klines_data length (which would pretty
                     # much only happen in forward test scenario) we just wait longer for the next candle to form.
                     current_end_index += 1
-                    if current_end_index > klines_data.length:
+                    if current_end_index >= klines_data.length:
                         continue
 
                 if current_end_index:
