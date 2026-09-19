@@ -177,12 +177,24 @@ class BlockManager:
             #     current_invalidation_price = self.all_blocks[direction][block_counter]
 
             for block_counter, block in enumerate(self.all_blocks[direction]):
-                end_check_window = (
-                    klines_data.high
-                    if block.direction == "bearish"
-                    else klines_data.low
-                )
+                # ------------- Uses shadows for cancellations -------------
+                # end_check_window = (
+                #     klines_data.high
+                #     if block.direction == "bearish"
+                #     else klines_data.low
+                # )
+                # current_end_index = block.check_end_candle(end_check_window)
+
+                # ------------- Uses fully closed candles for cancellations -------------
+                end_check_window = klines_data.close
+                # It's +1 since in an actual forward test scenario we would wait for th candle to fully close first
                 current_end_index = block.check_end_candle(end_check_window)
+                if current_end_index:
+                    # If the end index found (with the +1 added) is larger than the klines_data length (which would pretty
+                    # much only happen in forward test scenario) we just wait longer for the next candle to form.
+                    current_end_index += 1
+                    if current_end_index > klines_data.length:
+                        continue
 
                 if current_end_index:
                     current_end_time = klines_data.time[current_end_index]
@@ -199,7 +211,12 @@ class BlockManager:
 
                     # For the old blocks, if the old block doesn't have an end time, or has an end time
                     # after the current end time, set its end time to the current.
-                    for old_block in self.all_blocks[direction][: block_counter - 1]:
+                    for old_block in self.all_blocks[direction]:
+                        # Skip the block if it has a more recent start index. Basically only do this for
+                        # older boxes
+                        if not old_block.start_index <= block.start_index:
+                            continue
+
                         if (
                             not old_block.end_index
                             or old_block.end_index > current_end_index
