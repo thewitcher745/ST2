@@ -22,6 +22,19 @@ def is_block_height_percentage_valid(block: Block):
     )
 
 
+def is_block_formation_valid_vs_price_action(
+    block: Block, klines_data: KLinesData, start_index: int
+):
+    """
+    Checks if the candle right at the block's base has pierced it at formation time.
+    """
+    start_index = block.start_index
+    if block.direction == "bullish":
+        return klines_data.low[start_index] > block.high
+    else:
+        return klines_data.high[start_index] < block.low
+
+
 class BlockManager:
     """The 'Orchestrator' that manages the block list."""
 
@@ -153,13 +166,25 @@ class BlockManager:
             # Also check if the blocks are in the valid range, as defined by config variables
             # min_block_height_percentage and max_block_height_percentage
             if bb is not None:
-                if is_block_height_percentage_valid(bb):
+                if is_block_height_percentage_valid(
+                    bb
+                ) and is_block_formation_valid_vs_price_action(
+                    bb, klines_data, bb.start_index
+                ):
                     self.all_blocks[direction].append(bb)
             if mb is not None:
-                if is_block_height_percentage_valid(mb):
+                if is_block_height_percentage_valid(
+                    mb
+                ) and is_block_formation_valid_vs_price_action(
+                    mb, klines_data, mb.start_index
+                ):
                     self.all_blocks[direction].append(mb)
             if ob is not None:
-                if is_block_height_percentage_valid(ob):
+                if is_block_height_percentage_valid(
+                    ob
+                ) and is_block_formation_valid_vs_price_action(
+                    ob, klines_data, ob.start_index
+                ):
                     self.all_blocks[direction].append(ob)
 
     def update_block_end_times(self, klines_data: KLinesData):
@@ -177,12 +202,24 @@ class BlockManager:
             #     current_invalidation_price = self.all_blocks[direction][block_counter]
 
             for block_counter, block in enumerate(self.all_blocks[direction]):
-                end_check_window = (
-                    klines_data.high
-                    if block.direction == "bearish"
-                    else klines_data.low
-                )
+                # ------------- Uses shadows for cancellations -------------
+                # end_check_window = (
+                #     klines_data.high
+                #     if block.direction == "bearish"
+                #     else klines_data.low
+                # )
+                # current_end_index = block.check_end_candle(end_check_window)
+
+                # ------------- Uses fully closed candles for cancellations -------------
+                end_check_window = klines_data.close
+                # It's +1 since in an actual forward test scenario we would wait for th candle to fully close first
                 current_end_index = block.check_end_candle(end_check_window)
+                if current_end_index:
+                    # If the end index found (with the +1 added) is larger than the klines_data length (which would pretty
+                    # much only happen in forward test scenario) we just wait longer for the next candle to form.
+                    current_end_index += 1
+                    if current_end_index >= klines_data.length:
+                        continue
 
                 if current_end_index:
                     current_end_time = klines_data.time[current_end_index]
@@ -199,7 +236,12 @@ class BlockManager:
 
                     # For the old blocks, if the old block doesn't have an end time, or has an end time
                     # after the current end time, set its end time to the current.
-                    for old_block in self.all_blocks[direction][: block_counter - 1]:
+                    for old_block in self.all_blocks[direction]:
+                        # Skip the block if it has a more recent start index. Basically only do this for
+                        # older boxes
+                        if not old_block.start_index <= block.start_index:
+                            continue
+
                         if (
                             not old_block.end_index
                             or old_block.end_index > current_end_index
