@@ -22,6 +22,19 @@ def is_block_height_percentage_valid(block: Block):
     )
 
 
+def is_block_formation_valid_vs_price_action(
+    block: Block, klines_data: KLinesData, start_index: int
+):
+    """
+    Checks if the candle right at the block's base has pierced it at formation time.
+    """
+    start_index = block.start_index
+    if block.direction == "bullish":
+        return klines_data.low[start_index] > block.high
+    else:
+        return klines_data.high[start_index] < block.low
+
+
 class BlockManager:
     """The 'Orchestrator' that manages the block list."""
 
@@ -153,13 +166,25 @@ class BlockManager:
             # Also check if the blocks are in the valid range, as defined by config variables
             # min_block_height_percentage and max_block_height_percentage
             if bb is not None:
-                if is_block_height_percentage_valid(bb):
+                if is_block_height_percentage_valid(
+                    bb
+                ) and is_block_formation_valid_vs_price_action(
+                    bb, klines_data, bb.start_index
+                ):
                     self.all_blocks[direction].append(bb)
             if mb is not None:
-                if is_block_height_percentage_valid(mb):
+                if is_block_height_percentage_valid(
+                    mb
+                ) and is_block_formation_valid_vs_price_action(
+                    mb, klines_data, mb.start_index
+                ):
                     self.all_blocks[direction].append(mb)
             if ob is not None:
-                if is_block_height_percentage_valid(ob):
+                if is_block_height_percentage_valid(
+                    ob
+                ) and is_block_formation_valid_vs_price_action(
+                    ob, klines_data, ob.start_index
+                ):
                     self.all_blocks[direction].append(ob)
 
     def update_block_end_times(self, klines_data: KLinesData):
