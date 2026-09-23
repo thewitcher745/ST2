@@ -41,6 +41,12 @@ class BlockManager:
     def __init__(self):
         self.factory = BlockFactory()
         self.all_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
+        # Potential blocks are ALL blocks being posted regardless of the check conditions
+        # They are used for cancellations
+        self.all_potential_blocks: dict[str, list[Block]] = {
+            "bullish": [],
+            "bearish": [],
+        }
         self.active_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
         # The timestamp of the first active block's forming MSB
         # This is used for the forward test and before this timestamp MSB's aren't added to all blocks.
@@ -166,6 +172,7 @@ class BlockManager:
             # Also check if the blocks are in the valid range, as defined by config variables
             # min_block_height_percentage and max_block_height_percentage
             if bb is not None:
+                self.all_potential_blocks[direction].append(bb)
                 if is_block_height_percentage_valid(
                     bb
                 ) and is_block_formation_valid_vs_price_action(
@@ -173,6 +180,7 @@ class BlockManager:
                 ):
                     self.all_blocks[direction].append(bb)
             if mb is not None:
+                self.all_potential_blocks[direction].append(mb)
                 if is_block_height_percentage_valid(
                     mb
                 ) and is_block_formation_valid_vs_price_action(
@@ -180,6 +188,7 @@ class BlockManager:
                 ):
                     self.all_blocks[direction].append(mb)
             if ob is not None:
+                self.all_potential_blocks[direction].append(ob)
                 if is_block_height_percentage_valid(
                     ob
                 ) and is_block_formation_valid_vs_price_action(
