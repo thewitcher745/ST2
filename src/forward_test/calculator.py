@@ -51,7 +51,6 @@ class StructureCalculator:
         )
 
         block_manager.update_blocks(msbs_df, zigzag_df, klines_data)
-        block_manager.update_block_end_times(klines_data)
 
         position_manager.simulate_and_generate_positions(
             blocks=block_manager.all_active_blocks_aslist, klines_data=klines_data

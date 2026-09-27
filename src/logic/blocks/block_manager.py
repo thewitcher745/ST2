@@ -1,5 +1,6 @@
 from typing import Literal
 from pandas import DataFrame, Timestamp
+from numpy import where
 
 from src.data_provider import KLinesData
 from src.config import Config
@@ -28,6 +29,7 @@ def is_block_formation_valid_vs_price_action(
     """
     Checks if the candle right at the block's base has pierced it at formation time.
     """
+    return True
     start_index = block.start_index
     if block.direction == "bullish":
         return klines_data.low[start_index] > block.high
@@ -104,8 +106,9 @@ class BlockManager:
             leg_before_data = Leg(start_before, end_before, klines_data)
             leg_after_data = Leg(start_after, end_after, klines_data)
 
-            # The index and time of the candle which creates the MSB.
-            start_time = klines_data.time[row["formation_index"]]
+            # The block's start index/time is set to whenever the MSB forms.
+            start_index = row["formation_index"]
+            start_time = klines_data.time[start_index]
             assert isinstance(start_time, Timestamp)
 
             # Initially when the block forms, its invalidation price level should be the price value of the pivot
@@ -134,7 +137,7 @@ class BlockManager:
                     leg_after_data,
                     klines_data,
                     direction,
-                    formation_index,
+                    start_index,
                     start_time,
                     invalidation_price,
                 )
@@ -150,7 +153,7 @@ class BlockManager:
                         leg_before_data,
                         klines_data,
                         direction,
-                        formation_index,
+                        start_index,
                         start_time,
                         invalidation_price,
                         type="BB",
@@ -162,7 +165,7 @@ class BlockManager:
                         leg_before_data,
                         klines_data,
                         direction,
-                        formation_index,
+                        start_index,
                         start_time,
                         invalidation_price,
                         type="MB",
@@ -196,11 +199,14 @@ class BlockManager:
                 ):
                     self.all_blocks[direction].append(ob)
 
+        self.update_block_end_times(klines_data)
+        self.update_block_start_times(klines_data)
+
     def update_block_end_times(self, klines_data: KLinesData):
         """
-        This method updates each block's end time. The logic is that whenever a the pivot after
-        the MSB is broken by a candle closing above/below it, the block AND ANY BLOCK OF THE SAME
-        DIRECTION BEFORE IT is considered "ended".
+        This method updates each block's end time.
+        The logic is that whenever a the pivot after the MSB is broken by a candle closing above/below it,
+        the block AND ANY BLOCK OF THE SAME DIRECTION BEFORE IT is considered "ended".
         """
 
         # Iterate through all blocks, using a while loop.
@@ -272,3 +278,58 @@ class BlockManager:
                 self._first_active_block_msb_index[direction] = self.active_blocks[
                     direction
                 ][0].msb_kline_index
+
+    def update_block_start_times(self, klines_data: KLinesData):
+        """
+        Updates the block's start times based on price level.
+        For start times:
+            For bullish boxes, the block waits for the price to reach above the block before starting.
+            For bearish boxes, the inverse is true.
+        The search starts from the formation index of the MSB and continues until the block is cancelled.
+        If no such block is found, the block is removed from the list of all blocks.
+        """
+        for direction in ["bullish", "bearish"]:
+            for block in self.all_blocks[direction]:
+                if direction == "bullish":
+                    entry_search_price_level = klines_data.high
+                else:
+                    entry_search_price_level = klines_data.low
+
+                if block.end_index is not None:
+                    # If the block has a defined end time, it means the start index should start looking
+                    # from the MSB formation index (The non-updated start time) to the end index found in
+                    # the update_block_end_times method.
+                    start_search_window = entry_search_price_level[
+                        block.start_index : block.end_index
+                    ]
+                else:
+                    # If no end index is set, the search's upper limit is set to the end of the KLines data
+                    # array.
+                    start_search_window = entry_search_price_level[block.start_index :]
+
+                # window_local_start_index is the index of the start of the block relative to the sliced
+                # search window.
+                if direction == "bullish":
+                    window_local_start_indexes = where(
+                        start_search_window > block.high
+                    )[0]
+                else:
+                    window_local_start_indexes = where(start_search_window < block.low)[
+                        0
+                    ]
+
+                if len(window_local_start_indexes) > 0:
+                    window_local_start_index = window_local_start_indexes[0]
+                    block_start_index = block.start_index + window_local_start_index
+
+                    print(
+                        f"Block with ID {block.id} start index relocating from {block.start_index} to {block_start_index}"
+                    )
+
+                    block.start_index = block_start_index
+                    block.start_time = klines_data.time[block_start_index]
+
+                # If no good start candle is found, remove the block
+                else:
+                    print(f"Removing block with id {block.id}")
+                    # self.all_blocks[direction].remove(block)

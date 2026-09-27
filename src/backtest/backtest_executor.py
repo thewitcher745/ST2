@@ -68,7 +68,6 @@ class BacktestExecutor:
                 )
                 
                 self._block_manager.update_blocks(msbs_df, zigzag_df, klines_data)
-                self._block_manager.update_block_end_times(klines_data)
 
                 self._position_manager.simulate_and_generate_positions(
                     self._block_manager.all_blocks_aslist, klines_data
