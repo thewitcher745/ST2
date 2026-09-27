@@ -324,8 +324,13 @@ class BlockManager:
                     window_local_start_index = window_local_start_indexes[0]
                     block_start_index = block.start_index + window_local_start_index
 
+                    print(
+                        f"Updating {block.id} block start index: "
+                        f"{block.start_index} -> {block_start_index}"
+                    )
                     block.start_index = block_start_index
                     block.start_time = klines_data.time[block_start_index]
+                    print(f"Updated {block.id} block start time: {block.start_time}")
 
                 # If no good start candle is found, remove the block
                 else:
