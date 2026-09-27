@@ -273,7 +273,8 @@ class BlockManager:
                 # If no end index is found, it means the block has not ended yet, meaning it is still active.
                 # This is only useful for the forward test basically.
                 else:
-                    self.active_blocks[direction].append(block)
+                    if block in self.all_blocks[direction]:
+                        self.active_blocks[direction].append(block)
 
             # At the end, register the MSB index of the earliest active block. This is used for the forward test.
             if len(self.active_blocks[direction]) > 0:
