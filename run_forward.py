@@ -1,7 +1,7 @@
 import asyncio
 
 from src.forward_test import ForwardTest
-from src.init import run_bootstrap, clear_previous, confirm_channel
+from src.init import run_bootstrap, clear_previous, confirm_channel, confirm_cancel_mode
 from src.logger.logger_config import configure_logging
 from src.config import Config
 
@@ -10,7 +10,11 @@ config = Config()
 
 
 async def main():
-    # Confirm channel before proceeding
+    if config.cancel_mode:
+        confirm_cancel_mode()
+        forward_test = ForwardTest(symbols_filename=config.symbols_filename)
+        await forward_test.run()
+        return
     await confirm_channel()
     
     # Clears the state and logs folders if their flags are set.

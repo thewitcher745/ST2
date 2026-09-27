@@ -62,3 +62,12 @@ async def confirm_channel():
 
     finally:
         await telegram_client.close()
+
+
+def confirm_cancel_mode():
+    """Require explicit confirmation before sending cancellation messages."""
+    print("\nCANCEL MODE: cancellation messages will be sent for every configured symbol.")
+    response = input("Continue with cancel mode? (y/yes to continue): ").strip().lower()
+    if response not in ("y", "yes"):
+        print("Cancel mode aborted.")
+        exit(0)

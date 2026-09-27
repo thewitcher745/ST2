@@ -87,6 +87,7 @@ class Config:
     clear_klines: bool
     dry: bool
     shutdown: bool
+    cancel_mode: bool
     clean: bool
     symbols_filename: str
     direction: str
@@ -124,6 +125,13 @@ class Config:
             "--shutdown",
             action="store_true",
             help="Shuts down the host system after the backtest and outputs finish.",
+        )
+        argument_parser.add_argument(
+            "-cm",
+            "--cancel-mode",
+            dest="cancel_mode",
+            action="store_true",
+            help="Print cancellation commands for all configured symbols and exit.",
         )
         argument_parser.add_argument(
             "-s",

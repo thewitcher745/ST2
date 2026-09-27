@@ -53,4 +53,5 @@ CONFIG_SCHEMA = {
     "cid": str,
     "config_file": str,
     "shutdown": bool,
+    "cancel_mode": bool,
 }

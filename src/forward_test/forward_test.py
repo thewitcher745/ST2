@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import logging
+import asyncio
 
 from .serializer import FTChartSerializer
 from src.telegram.signal_manager import SignalManager
@@ -24,6 +25,9 @@ class ForwardTest:
         self._symbols = self._load_symbols(f"data/symbol_lists/{symbols_filename}")
 
         logger.info(f"Added symbols {self._symbols}")
+
+        if config.cancel_mode:
+            return
 
         # Shared across all symbols
         self.zigzag = Zigzag()
@@ -101,6 +105,17 @@ class ForwardTest:
         """
         Initiates and runs the forward test loop.
         """
+        if config.cancel_mode:
+            telegram_client = TelegramClient()
+            try:
+                for index, symbol in enumerate(self._symbols):
+                    await telegram_client.send_message(f"Cancel {symbol}")
+                    if index < len(self._symbols) - 1:
+                        await asyncio.sleep(5)
+            finally:
+                await telegram_client.close()
+            return
+
         self._load_klines()
         for symbol in self._symbols:
             self._calc_for_symbol(symbol)
