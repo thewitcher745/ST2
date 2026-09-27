@@ -327,4 +327,4 @@ class BlockManager:
 
                 # If no good start candle is found, remove the block
                 else:
-                    # self.all_blocks[direction].remove(block)
+                    self.all_blocks[direction].remove(block)
