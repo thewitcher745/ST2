@@ -200,7 +200,9 @@ class BlockManager:
                     self.all_blocks[direction].append(ob)
 
         self.update_block_end_times(klines_data)
-        self.update_block_start_times(klines_data)
+        waiting_method = config.block_formation_waiting_method
+        if waiting_method is not None and waiting_method.lower() not in ("", "none"):
+            self.update_block_start_times(klines_data)
 
     def update_block_end_times(self, klines_data: KLinesData):
         """

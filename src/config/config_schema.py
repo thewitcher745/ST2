@@ -54,4 +54,5 @@ CONFIG_SCHEMA = {
     "config_file": str,
     "shutdown": bool,
     "cancel_mode": bool,
+    "block_formation_waiting_method": str,
 }

@@ -91,6 +91,7 @@ class Config:
     clean: bool
     symbols_filename: str
     direction: str
+    block_formation_waiting_method: str = "price_reach"
     backtest_output_dir: Optional[str] = None
     cid: Optional[
         str
