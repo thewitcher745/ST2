@@ -322,14 +322,9 @@ class BlockManager:
                     window_local_start_index = window_local_start_indexes[0]
                     block_start_index = block.start_index + window_local_start_index
 
-                    print(
-                        f"Block with ID {block.id} start index relocating from {block.start_index} to {block_start_index}"
-                    )
-
                     block.start_index = block_start_index
                     block.start_time = klines_data.time[block_start_index]
 
                 # If no good start candle is found, remove the block
                 else:
-                    print(f"Removing block with id {block.id}")
                     # self.all_blocks[direction].remove(block)
