@@ -368,8 +368,8 @@ class ChartManager:
             const plot = document.getElementById('{plot_id}');
             const controls = document.createElement('form');
             controls.style.cssText = 'display:flex;gap:8px;align-items:center;padding:10px;background:#111;color:#eee;font:14px sans-serif';
-            controls.innerHTML = '<label for="candle-time">Zoom to candle time (UTC):</label>' +
-                '<input id="candle-time" type="text" placeholder="YYYY-MM-DD HH:MM:SS" style="padding:6px;width:190px">' +
+            controls.innerHTML = '<label for="candle-time">Zoom to candle time or block ID:</label>' +
+                '<input id="candle-time" type="text" placeholder="YYYY-MM-DD HH:MM:SS or Block ID" style="padding:6px;width:240px">' +
                 '<button type="submit" style="padding:6px 12px;cursor:pointer">Zoom</button>' +
                 '<span id="candle-time-status" role="status"></span>';
             plot.parentNode.insertBefore(controls, plot);
@@ -386,7 +386,16 @@ class ChartManager:
             controls.addEventListener('submit', function(event) {
                 event.preventDefault();
                 const status = controls.querySelector('#candle-time-status');
-                const rawTime = controls.querySelector('#candle-time').value.trim();
+                let rawTime = controls.querySelector('#candle-time').value.trim();
+                
+                // Check if input is a block ID (format: Prefix_Prefix_YYYY-MM-DDTHH:MM:SS)
+                const blockIdPattern = /^[^_]+_[^_]+_(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})$/;
+                const blockIdMatch = rawTime.match(blockIdPattern);
+                if (blockIdMatch) {
+                    rawTime = blockIdMatch[1];  // Extract the timestamp portion
+                    status.textContent = 'Parsed block ID timestamp: ' + rawTime;
+                }
+                
                 const normalizedTime = rawTime.includes('T') ? rawTime : rawTime.replace(' ', 'T');
                 const requestedTime = Date.parse(/(?:Z|[+-]\d\d:\d\d)$/.test(normalizedTime)
                     ? normalizedTime : normalizedTime + 'Z');
