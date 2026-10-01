@@ -45,7 +45,7 @@ def shutdown_system() -> None:
 
 
 BACKTEST_START_DATE = "20260101"
-BACKTEST_END_DATE = "20260801"
+BACKTEST_END_DATE = "20261001"
 symbols = ["XAUUSDT"]
 
 params_range_dict = {
