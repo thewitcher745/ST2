@@ -52,11 +52,7 @@ def is_block_preformation_valid(
     if method == "level_stoploss":
         # Build the normal position only to reuse its configured first-stop calculation.
         theoretical_position = Position(block, add_to_block=False)
-        try:
-            invalidation_level = theoretical_position.stoplosses[0]
-        finally:
-            # This temporary position must not count as a real block bounce.
-            block.positions.remove(theoretical_position)
+        invalidation_level = theoretical_position.stoplosses[0]
     elif method == "level_block":
         # A long invalidates at the block bottom; a short invalidates at its top.
         invalidation_level = block.low if block.direction == "bullish" else block.high
@@ -73,9 +69,14 @@ def is_block_preformation_valid(
     )
 
     # A wick touching the invalidation level is enough to reject the block.
-    if block.direction == "bullish":
-        return not (price_window <= invalidation_level).any()
-    return not (price_window >= invalidation_level).any()
+    invalidating_offsets = (
+        where(price_window <= invalidation_level)[0]
+        if block.direction == "bullish"
+        else where(price_window >= invalidation_level)[0]
+    )
+    if len(invalidating_offsets):
+        return False
+    return True
 
 
 class BlockManager:
@@ -172,7 +173,6 @@ class BlockManager:
             preformation_check_start_index = zigzag_df.iloc[
                 row["pivot_index"] + 2
             ].kline_index
-            assert isinstance(preformation_check_start_index, int)
 
             msb_kline_index = row["kline_index"]
             assert isinstance(msb_kline_index, int)
