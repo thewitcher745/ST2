@@ -55,4 +55,5 @@ CONFIG_SCHEMA = {
     "shutdown": bool,
     "cancel_mode": bool,
     "block_formation_waiting_method": str,
+    "block_preformation_check_method": str,
 }

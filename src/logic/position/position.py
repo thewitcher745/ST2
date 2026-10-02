@@ -14,7 +14,11 @@ config = Config()
 
 
 class Position:
-    def __init__(self, base_block: Block, bounce_id: int = 0):
+    def __init__(self, base_block: Block, bounce_id: int = 0, add_to_block=True):
+        """
+        Forms a position object and adds it to the list of positions of a block, if
+        add_to_block=False.
+        """
         self.base_block = base_block
         self.start_time = base_block.start_time
         self.type: Literal["short", "long"] = "long"
@@ -51,8 +55,9 @@ class Position:
         # This ID is only used to compare positions
         self.id = self.base_block.id + f"_{self.bounce_id}"
 
-        # Add the position to its base block's positions list
-        self.base_block.positions.append(self)
+        # Add the position to its base block's positions list if add_to_block=True
+        if add_to_block:
+            self.base_block.positions.append(self)
 
         self.setup_targets()
         self.setup_stoplosses()

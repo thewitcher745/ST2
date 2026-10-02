@@ -7,6 +7,7 @@ from src.config import Config
 from .block import Block
 from .block_factory import BlockFactory
 from ..structure.leg import Leg
+from ..position.position import Position
 
 config = Config()
 
@@ -35,6 +36,46 @@ def is_block_formation_valid_vs_price_action(
         return klines_data.low[start_index] > block.high
     else:
         return klines_data.high[start_index] < block.low
+
+
+def is_block_preformation_valid(
+    block: Block,
+    klines_data: KLinesData,
+    check_start_index: int,
+    check_end_index: int,
+) -> bool:
+    """Return whether price avoids the configured invalidation level before formation."""
+    method = config.block_preformation_check_method
+    if not method or str(method).lower() in ("none", "false", "0", "no"):
+        return True
+
+    if method == "level_stoploss":
+        # Build the normal position only to reuse its configured first-stop calculation.
+        theoretical_position = Position(block, add_to_block=False)
+        try:
+            invalidation_level = theoretical_position.stoplosses[0]
+        finally:
+            # This temporary position must not count as a real block bounce.
+            block.positions.remove(theoretical_position)
+    elif method == "level_block":
+        # A long invalidates at the block bottom; a short invalidates at its top.
+        invalidation_level = block.low if block.direction == "bullish" else block.high
+    else:
+        raise ValueError(
+            "block_preformation_check_method must be none-like, "
+            "'level_stoploss', or 'level_block'."
+        )
+
+    price_window = (
+        klines_data.low[check_start_index : check_end_index + 1]
+        if block.direction == "bullish"
+        else klines_data.high[check_start_index : check_end_index + 1]
+    )
+
+    # A wick touching the invalidation level is enough to reject the block.
+    if block.direction == "bullish":
+        return not (price_window <= invalidation_level).any()
+    return not (price_window >= invalidation_level).any()
 
 
 class BlockManager:
@@ -127,6 +168,12 @@ class BlockManager:
             formation_index = row["formation_index"]
             assert isinstance(formation_index, int)
 
+            # Start at p3, two pivots after the MSB pivot, through MSB confirmation.
+            preformation_check_start_index = zigzag_df.iloc[
+                row["pivot_index"] + 2
+            ].kline_index
+            assert isinstance(preformation_check_start_index, int)
+
             msb_kline_index = row["kline_index"]
             assert isinstance(msb_kline_index, int)
 
@@ -175,29 +222,47 @@ class BlockManager:
             # Also check if the blocks are in the valid range, as defined by config variables
             # min_block_height_percentage and max_block_height_percentage
             if bb is not None:
-                self.all_potential_blocks[direction].append(bb)
-                if is_block_height_percentage_valid(
-                    bb
-                ) and is_block_formation_valid_vs_price_action(
-                    bb, klines_data, bb.start_index
+                if is_block_preformation_valid(
+                    bb,
+                    klines_data,
+                    preformation_check_start_index,
+                    formation_index,
                 ):
-                    self.all_blocks[direction].append(bb)
+                    self.all_potential_blocks[direction].append(bb)
+                    if is_block_height_percentage_valid(
+                        bb
+                    ) and is_block_formation_valid_vs_price_action(
+                        bb, klines_data, bb.start_index
+                    ):
+                        self.all_blocks[direction].append(bb)
             if mb is not None:
-                self.all_potential_blocks[direction].append(mb)
-                if is_block_height_percentage_valid(
-                    mb
-                ) and is_block_formation_valid_vs_price_action(
-                    mb, klines_data, mb.start_index
+                if is_block_preformation_valid(
+                    mb,
+                    klines_data,
+                    preformation_check_start_index,
+                    formation_index,
                 ):
-                    self.all_blocks[direction].append(mb)
+                    self.all_potential_blocks[direction].append(mb)
+                    if is_block_height_percentage_valid(
+                        mb
+                    ) and is_block_formation_valid_vs_price_action(
+                        mb, klines_data, mb.start_index
+                    ):
+                        self.all_blocks[direction].append(mb)
             if ob is not None:
-                self.all_potential_blocks[direction].append(ob)
-                if is_block_height_percentage_valid(
-                    ob
-                ) and is_block_formation_valid_vs_price_action(
-                    ob, klines_data, ob.start_index
+                if is_block_preformation_valid(
+                    ob,
+                    klines_data,
+                    preformation_check_start_index,
+                    formation_index,
                 ):
-                    self.all_blocks[direction].append(ob)
+                    self.all_potential_blocks[direction].append(ob)
+                    if is_block_height_percentage_valid(
+                        ob
+                    ) and is_block_formation_valid_vs_price_action(
+                        ob, klines_data, ob.start_index
+                    ):
+                        self.all_blocks[direction].append(ob)
 
         self.update_block_end_times(klines_data)
         waiting_method = config.block_formation_waiting_method
