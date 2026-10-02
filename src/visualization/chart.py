@@ -363,7 +363,62 @@ class ChartManager:
 
     def save(self, auto_open=False):
         self._apply_zoom()
-        # When saving to HTML, you can include the config here
+        zoom_controls = r"""
+        (function() {
+            const plot = document.getElementById('{plot_id}');
+            const controls = document.createElement('form');
+            controls.style.cssText = 'display:flex;gap:8px;align-items:center;padding:10px;background:#111;color:#eee;font:14px sans-serif';
+            controls.innerHTML = '<label for="candle-time">Zoom to candle time (UTC):</label>' +
+                '<input id="candle-time" type="text" placeholder="YYYY-MM-DD HH:MM:SS" style="padding:6px;width:190px">' +
+                '<button type="submit" style="padding:6px 12px;cursor:pointer">Zoom</button>' +
+                '<span id="candle-time-status" role="status"></span>';
+            plot.parentNode.insertBefore(controls, plot);
+
+            const candleTrace = plot.data.find(trace => trace.type === 'candlestick');
+            if (candleTrace && candleTrace.x && candleTrace.x.length > 0) {
+                const latestTime = new Date(Date.parse(candleTrace.x[candleTrace.x.length - 1]));
+                if (!Number.isNaN(latestTime.getTime())) {
+                    controls.querySelector('#candle-time').value = latestTime.toISOString()
+                        .slice(0, 19).replace('T', ' ');
+                }
+            }
+
+            controls.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const status = controls.querySelector('#candle-time-status');
+                const rawTime = controls.querySelector('#candle-time').value.trim();
+                const normalizedTime = rawTime.includes('T') ? rawTime : rawTime.replace(' ', 'T');
+                const requestedTime = Date.parse(/(?:Z|[+-]\d\d:\d\d)$/.test(normalizedTime)
+                    ? normalizedTime : normalizedTime + 'Z');
+                if (!Number.isFinite(requestedTime)) {
+                    status.textContent = 'Enter a valid date and time.';
+                    return;
+                }
+
+                if (!candleTrace || !candleTrace.x || candleTrace.x.length === 0) {
+                    status.textContent = 'No candle data is available.';
+                    return;
+                }
+
+                const candleTimes = candleTrace.x.map(value => Date.parse(value));
+                let nearestIndex = 0;
+                for (let i = 1; i < candleTimes.length; i++) {
+                    if (Math.abs(candleTimes[i] - requestedTime) < Math.abs(candleTimes[nearestIndex] - requestedTime)) {
+                        nearestIndex = i;
+                    }
+                }
+
+                const halfWindow = Math.max(1, Math.floor(%d / 2));
+                const startIndex = Math.max(0, nearestIndex - halfWindow);
+                const endIndex = Math.min(candleTimes.length - 1, nearestIndex + halfWindow);
+                Plotly.relayout(plot, {'xaxis.range': [candleTrace.x[startIndex], candleTrace.x[endIndex]]});
+                status.textContent = 'Showing nearest candle: ' + candleTrace.x[nearestIndex];
+            });
+        })();
+        """ % self.max_n_candles_visible
         self._fig.write_html(
-            self.output_file, auto_open=auto_open, config={"scrollZoom": True}
+            self.output_file,
+            auto_open=auto_open,
+            config={"scrollZoom": True},
+            post_script=zoom_controls,
         )
