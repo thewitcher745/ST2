@@ -293,10 +293,15 @@ class BlockManager:
         """
         for direction in ["bullish", "bearish"]:
             for block in self.all_blocks[direction]:
-                if direction == "bullish":
-                    entry_search_price_level = klines_data.high
-                else:
-                    entry_search_price_level = klines_data.low
+                # price_reach waiting method uses the shadows of candles to determine if a block is valid to send.
+                if config.block_formation_waiting_method == "price_reach":
+                    if direction == "bullish":
+                        entry_search_price_level = klines_data.high
+                    else:
+                        entry_search_price_level = klines_data.low
+                # price_close waiting method uses the closes of candles to determine if a block is valid to send.
+                elif config.block_formation_waiting_method == "price_close":
+                    entry_search_price_level = klines_data.close
 
                 if block.end_index is not None:
                     # If the block has a defined end time, it means the start index should start looking
@@ -324,6 +329,21 @@ class BlockManager:
                 if len(window_local_start_indexes) > 0:
                     window_local_start_index = window_local_start_indexes[0]
                     block_start_index = block.start_index + window_local_start_index
+
+                    if config.block_formation_waiting_method == "price_reach":
+                        block_start_index = block.start_index + window_local_start_index
+
+                    elif config.block_formation_waiting_method == "price_close":
+                        # The +1 is there because a "closed" candle in a forward test scenario
+                        # basically means the second-to-last candle so we need to delay it as much
+                        # in the historical data calculations. Otherwise a live candle can "close"
+                        # above/below the activation threshold and go back down/up and it would become
+                        # a shadow in the historical data. Basically we only count completely closed, dead
+                        # candles as our criteria.
+
+                        block_start_index = (
+                            block.start_index + window_local_start_index + 1
+                        )
 
                     block.start_index = block_start_index
                     block.start_time = klines_data.time[block_start_index]
