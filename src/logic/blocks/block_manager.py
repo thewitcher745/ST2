@@ -439,8 +439,10 @@ class BlockManager:
         For start times:
             For bullish boxes, the block waits for the price to reach above the block before starting.
             For bearish boxes, the inverse is true.
-        The search starts from the formation index of the MSB and continues until the block is cancelled.
-        If no such block is found, the block is removed from the list of all blocks.
+        The search starts from the MSB formation index and stops before the first candle
+        whose wick hits the initial stoploss of a theoretical position for the block.
+        If the stoploss is never hit, search through the available candles.
+        If no suitable start candle is found, remove the block from the list of all blocks.
         """
         for direction in ["bullish", "bearish"]:
             for block in list(self.all_blocks[direction]):
@@ -454,17 +456,33 @@ class BlockManager:
                 elif config.block_formation_waiting_method == "price_close":
                     entry_search_price_level = klines_data.close
 
-                if block.end_index is not None:
-                    # If the block has a defined end time, it means the start index should start looking
-                    # from the MSB formation index (The non-updated start time) to the end index found in
-                    # the update_block_end_times method.
-                    start_search_window = entry_search_price_level[
-                        block.start_index : block.end_index
-                    ]
+                theoretical_position = Position(block, add_to_block=False)
+                stoploss = theoretical_position.stoplosses[0]
+                if direction == "bullish":
+                    stoploss_hit_offsets = where(
+                        klines_data.low[block.start_index : block.end_index] <= stoploss
+                    )[0]
                 else:
-                    # If no end index is set, the search's upper limit is set to the end of the KLines data
-                    # array.
-                    start_search_window = entry_search_price_level[block.start_index :]
+                    stoploss_hit_offsets = where(
+                        klines_data.high[block.start_index : block.end_index]
+                        >= stoploss
+                    )[0]
+
+                if len(stoploss_hit_offsets):
+                    print(
+                        block.id,
+                        block.start_index + stoploss_hit_offsets[0],
+                        theoretical_position.stoplosses[0],
+                    )
+
+                search_end_index = (
+                    block.start_index + stoploss_hit_offsets[0]
+                    if len(stoploss_hit_offsets)
+                    else klines_data.length
+                )
+                start_search_window = entry_search_price_level[
+                    block.start_index : search_end_index
+                ]
 
                 # window_local_start_index is the index of the start of the block relative to the sliced
                 # search window.
@@ -496,7 +514,7 @@ class BlockManager:
                             block.start_index + window_local_start_index + 1
                         )
 
-                    if block_start_index >= klines_data.length:
+                    if block_start_index >= search_end_index:
                         self.all_blocks[direction].remove(block)
                         continue
 
