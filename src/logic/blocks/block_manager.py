@@ -468,13 +468,6 @@ class BlockManager:
                         >= stoploss
                     )[0]
 
-                if len(stoploss_hit_offsets):
-                    print(
-                        block.id,
-                        block.start_index + stoploss_hit_offsets[0],
-                        theoretical_position.stoplosses[0],
-                    )
-
                 search_end_index = (
                     block.start_index + stoploss_hit_offsets[0]
                     if len(stoploss_hit_offsets)
