@@ -92,7 +92,7 @@ class Config:
     clean: bool
     symbols_filename: str
     direction: str
-    block_formation_waiting_method: str = "price_reach"
+    block_formation_waiting_method: str = "price_close"
     # None-like values disable the check; supported values are level_stoploss and level_block.
     block_preformation_check_method: Optional[str] = None
     backtest_output_dir: Optional[str] = None
