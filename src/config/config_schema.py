@@ -6,6 +6,7 @@ CONFIG_SCHEMA = {
     "lag": int,
     "fib_factor": float,
     "zigzag_method": str,
+    "structure_engine": str,
     "timeframe": str,
     "target_coeff": float,
     "stoploss_coeff": float,

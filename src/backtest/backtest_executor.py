@@ -58,16 +58,9 @@ class BacktestExecutor:
                 continue
 
             try:
-                zigzag_df = self._zigzag.calculate(klines_data)
-
-                msbs_df = self._msb_identifier.find_all_matches(
-                    zigzag_df["pivot_type"].tolist(),
-                    zigzag_df["kline_index"].tolist(),
-                    zigzag_df["pivot_value"].tolist(),
-                    zigzag_df["pivot_formation_index"].tolist(),
+                self._block_manager.calculate_structure(
+                    klines_data, self._zigzag, self._msb_identifier
                 )
-                
-                self._block_manager.update_blocks(msbs_df, zigzag_df, klines_data)
 
                 self._position_manager.simulate_and_generate_positions(
                     self._block_manager.all_blocks_aslist, klines_data

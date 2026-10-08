@@ -40,17 +40,10 @@ class StructureCalculator:
         ):
             return
 
-        zigzag_df = zigzag.calculate(klines_data)
-        self.zigzag_dfs[symbol] = zigzag_df
-
-        msbs_df = msb_identifier.find_all_matches(
-            zigzag_df["pivot_type"].tolist(),
-            zigzag_df["kline_index"].tolist(),
-            zigzag_df["pivot_value"].tolist(),
-            zigzag_df["pivot_formation_index"].tolist(),
+        zigzag_df, _ = block_manager.calculate_structure(
+            klines_data, zigzag, msb_identifier
         )
-
-        block_manager.update_blocks(msbs_df, zigzag_df, klines_data)
+        self.zigzag_dfs[symbol] = zigzag_df
 
         position_manager.simulate_and_generate_positions(
             blocks=block_manager.all_active_blocks_aslist, klines_data=klines_data

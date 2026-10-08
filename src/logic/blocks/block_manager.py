@@ -7,6 +7,9 @@ from src.config import Config
 from .block import Block
 from .block_factory import BlockFactory
 from ..structure.leg import Leg
+from ..structure.msb import MSBIdentifier
+from ..structure.pine_detector import BlockFormation, PineBlockDetector
+from ..structure.zigzag import Zigzag
 from ..position.position import Position
 
 config = Config()
@@ -84,6 +87,7 @@ class BlockManager:
 
     def __init__(self):
         self.factory = BlockFactory()
+        self._structure_engine: str | None = None
         self.all_blocks: dict[str, list[Block]] = {"bullish": [], "bearish": []}
         # Potential blocks are ALL blocks being posted regardless of the check conditions
         # They are used for cancellations
@@ -113,6 +117,85 @@ class BlockManager:
     def all_blocks_aslist(self) -> list[Block]:
         """Returns all blocks as a list without direction separation."""
         return self.all_blocks["bullish"] + self.all_blocks["bearish"]
+
+    def calculate_structure(
+        self,
+        klines_data: KLinesData,
+        zigzag: Zigzag,
+        msb_identifier: MSBIdentifier,
+    ) -> tuple[DataFrame, DataFrame]:
+        engine = config.structure_engine
+        if engine not in ("bulk", "pine_replay"):
+            raise ValueError("structure_engine must be 'bulk' or 'pine_replay'.")
+        if self._structure_engine is not None and engine != self._structure_engine:
+            self.all_potential_blocks = {"bullish": [], "bearish": []}
+            self._first_active_block_msb_index = {"bullish": None, "bearish": None}
+        self._structure_engine = engine
+
+        if engine == "pine_replay":
+            result = PineBlockDetector(config.lag, config.fib_factor).calculate(
+                klines_data
+            )
+            self._update_detected_blocks(result.formations, klines_data)
+            return result.zigzag_df, result.msbs_df
+
+        zigzag_df = zigzag.calculate(klines_data)
+        msbs_df = msb_identifier.find_all_matches(
+            zigzag_df["pivot_type"].tolist(),
+            zigzag_df["kline_index"].tolist(),
+            zigzag_df["pivot_value"].tolist(),
+            zigzag_df["pivot_formation_index"].tolist(),
+        )
+        self.update_blocks(msbs_df, zigzag_df, klines_data)
+        return zigzag_df, msbs_df
+
+    def _update_detected_blocks(
+        self, formations: list[BlockFormation], klines_data: KLinesData
+    ) -> None:
+        self.reset_blocks()
+        self.all_potential_blocks = {"bullish": [], "bearish": []}
+        self._first_active_block_msb_index = {"bullish": None, "bearish": None}
+        for formation in sorted(
+            formations, key=lambda item: (item.formation_index, item.block_type == "OB")
+        ):
+            direction = formation.direction
+            if config.direction == "long" and direction == "bearish":
+                continue
+            if config.direction == "short" and direction == "bullish":
+                continue
+            if (
+                config.block_types is not None
+                and formation.block_type not in config.block_types
+            ):
+                continue
+            base_index = formation.base_candle_index
+            block = Block(
+                base_candle_index=base_index,
+                base_candle_time=klines_data.time[base_index],
+                msb_kline_index=formation.msb_kline_index,
+                direction=direction,
+                block_type=formation.block_type,
+                low=float(klines_data.low[base_index]),
+                high=float(klines_data.high[base_index]),
+                start_index=formation.formation_index,
+                start_time=klines_data.time[formation.formation_index],
+                invalidation_price=formation.invalidation_price,
+            )
+            if not is_block_preformation_valid(
+                block,
+                klines_data,
+                formation.preformation_check_start_index,
+                formation.formation_index,
+            ):
+                continue
+            self.all_potential_blocks[direction].append(block)
+            if is_block_height_percentage_valid(
+                block
+            ) and is_block_formation_valid_vs_price_action(
+                block, klines_data, block.start_index
+            ):
+                self.all_blocks[direction].append(block)
+        self._update_block_lifetimes(klines_data)
 
     def update_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData
@@ -264,6 +347,9 @@ class BlockManager:
                     ):
                         self.all_blocks[direction].append(ob)
 
+        self._update_block_lifetimes(klines_data)
+
+    def _update_block_lifetimes(self, klines_data: KLinesData) -> None:
         self.update_block_end_times(klines_data)
         waiting_method = config.block_formation_waiting_method
         if waiting_method is not None and waiting_method.lower() not in ("", "none"):
@@ -357,7 +443,7 @@ class BlockManager:
         If no such block is found, the block is removed from the list of all blocks.
         """
         for direction in ["bullish", "bearish"]:
-            for block in self.all_blocks[direction]:
+            for block in list(self.all_blocks[direction]):
                 # price_reach waiting method uses the shadows of candles to determine if a block is valid to send.
                 if config.block_formation_waiting_method == "price_reach":
                     if direction == "bullish":
@@ -410,9 +496,20 @@ class BlockManager:
                             block.start_index + window_local_start_index + 1
                         )
 
+                    if block_start_index >= klines_data.length:
+                        self.all_blocks[direction].remove(block)
+                        continue
+
                     block.start_index = block_start_index
                     block.start_time = klines_data.time[block_start_index]
 
                 # If no good start candle is found, remove the block
                 else:
                     self.all_blocks[direction].remove(block)
+
+            retained_blocks = set(self.all_blocks[direction])
+            self.active_blocks[direction] = [
+                block
+                for block in self.active_blocks[direction]
+                if block in retained_blocks
+            ]
