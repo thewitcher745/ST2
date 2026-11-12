@@ -9,6 +9,7 @@ from numpy import float64, array, ones
 from numpy.typing import NDArray
 
 from src.config import Config
+from .utils import get_atr_exit_distance
 
 if TYPE_CHECKING:
     from src.logic import Position
@@ -23,6 +24,17 @@ class TargetPlan:
 
 
 class TargetProvider:
+    @staticmethod
+    def atr(position: Position) -> TargetPlan:
+        """Exit all quantity at one target, prior ATR * atr_exit_coeff from entry."""
+        distance = get_atr_exit_distance(position)
+        target = (
+            position.entry + distance
+            if position.type == "long"
+            else position.entry - distance
+        )
+        return TargetProvider._build_target_plan(array([target], dtype=float64))
+
     @staticmethod
     def _get_refined_base_height(position: Position) -> float:
         height_percentage = position.base_block.height_percentage

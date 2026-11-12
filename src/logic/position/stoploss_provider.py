@@ -11,6 +11,7 @@ from numpy import float64, array
 from numpy.typing import NDArray
 
 from src.config import Config
+from .utils import get_atr_exit_distance
 
 if TYPE_CHECKING:
     from src.logic import Position
@@ -19,6 +20,17 @@ config = Config()
 
 
 class StoplossProvider:
+    @staticmethod
+    def atr(position: Position) -> NDArray[float64]:
+        """Fixed stop at the same ATR distance from entry as the single target."""
+        distance = get_atr_exit_distance(position)
+        stop = (
+            position.entry - distance
+            if position.type == "long"
+            else position.entry + distance
+        )
+        return array([stop], dtype=float64)
+
     @staticmethod
     def _get_refined_base_height(position: Position) -> float:
         height_percentage = position.base_block.height_percentage

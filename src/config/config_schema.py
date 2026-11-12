@@ -10,6 +10,8 @@ CONFIG_SCHEMA = {
     "timeframe": str,
     "target_coeff": float,
     "stoploss_coeff": float,
+    "block_atr_coeff": float,
+    "atr_exit_coeff": float,
     "target_setup_function": str,
     "stoploss_setup_function": str,
     "min_block_height_percentage": float,

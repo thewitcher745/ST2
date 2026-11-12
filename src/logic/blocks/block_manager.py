@@ -1,4 +1,5 @@
 from typing import Literal
+from math import isfinite
 from pandas import DataFrame, Timestamp
 from numpy import where
 
@@ -13,6 +14,19 @@ from ..structure.zigzag import Zigzag
 from ..position.position import Position
 
 config = Config()
+
+
+def is_block_atr_valid(block: Block) -> bool:
+    """Apply the optional ATR height filter and require usable ATR for ATR exits."""
+    coeff = config.block_atr_coeff
+    if not isfinite(coeff) or coeff < 0:
+        raise ValueError("block_atr_coeff must be finite and nonnegative.")
+    atr_exits = "atr" in (config.target_setup_function, config.stoploss_setup_function)
+    if coeff == 0 and not atr_exits:
+        return True
+    if block.prior_atr is None or not isfinite(block.prior_atr) or block.prior_atr <= 0:
+        return False
+    return coeff == 0 or block.height > block.prior_atr * coeff
 
 
 def is_block_height_percentage_valid(block: Block):
@@ -181,21 +195,46 @@ class BlockManager:
                 start_time=klines_data.time[formation.formation_index],
                 invalidation_price=formation.invalidation_price,
             )
-            if not is_block_preformation_valid(
+            self._add_candidate_block(
                 block,
                 klines_data,
                 formation.preformation_check_start_index,
                 formation.formation_index,
-            ):
-                continue
-            self.all_potential_blocks[direction].append(block)
-            if is_block_height_percentage_valid(
-                block
-            ) and is_block_formation_valid_vs_price_action(
-                block, klines_data, block.start_index
-            ):
-                self.all_blocks[direction].append(block)
+            )
         self._update_block_lifetimes(klines_data)
+
+    def _add_candidate_block(
+        self,
+        block: Block,
+        klines_data: KLinesData,
+        check_start_index: int,
+        formation_index: int,
+    ) -> None:
+        """Prepare and filter candidates identically for both structure engines."""
+        block.prior_atr = klines_data.calculate_atr_before(block.base_candle_index)
+        atr_valid = is_block_atr_valid(block)
+        # Stop-based preformation needs a position; retain structural history when
+        # its ATR is unavailable. Other preformation checks can still run normally.
+        atr_preformation = (
+            config.block_preformation_check_method == "level_stoploss"
+            and "atr" in (config.target_setup_function, config.stoploss_setup_function)
+        )
+        if block.prior_atr is None and atr_preformation:
+            self.all_potential_blocks[block.direction].append(block)
+            return
+        if not is_block_preformation_valid(
+            block, klines_data, check_start_index, formation_index
+        ):
+            return
+        self.all_potential_blocks[block.direction].append(block)
+        if (
+            atr_valid
+            and is_block_height_percentage_valid(block)
+            and is_block_formation_valid_vs_price_action(
+                block, klines_data, block.start_index
+            )
+        ):
+            self.all_blocks[block.direction].append(block)
 
     def update_blocks(
         self, msbs_df: DataFrame, zigzag_df: DataFrame, klines_data: KLinesData
@@ -304,48 +343,14 @@ class BlockManager:
             # Since BB/MB's come before OB's, it's better to add them first for good measure.
             # Also check if the blocks are in the valid range, as defined by config variables
             # min_block_height_percentage and max_block_height_percentage
-            if bb is not None:
-                if is_block_preformation_valid(
-                    bb,
-                    klines_data,
-                    preformation_check_start_index,
-                    formation_index,
-                ):
-                    self.all_potential_blocks[direction].append(bb)
-                    if is_block_height_percentage_valid(
-                        bb
-                    ) and is_block_formation_valid_vs_price_action(
-                        bb, klines_data, bb.start_index
-                    ):
-                        self.all_blocks[direction].append(bb)
-            if mb is not None:
-                if is_block_preformation_valid(
-                    mb,
-                    klines_data,
-                    preformation_check_start_index,
-                    formation_index,
-                ):
-                    self.all_potential_blocks[direction].append(mb)
-                    if is_block_height_percentage_valid(
-                        mb
-                    ) and is_block_formation_valid_vs_price_action(
-                        mb, klines_data, mb.start_index
-                    ):
-                        self.all_blocks[direction].append(mb)
-            if ob is not None:
-                if is_block_preformation_valid(
-                    ob,
-                    klines_data,
-                    preformation_check_start_index,
-                    formation_index,
-                ):
-                    self.all_potential_blocks[direction].append(ob)
-                    if is_block_height_percentage_valid(
-                        ob
-                    ) and is_block_formation_valid_vs_price_action(
-                        ob, klines_data, ob.start_index
-                    ):
-                        self.all_blocks[direction].append(ob)
+            for block in (bb, mb, ob):
+                if block is not None:
+                    self._add_candidate_block(
+                        block,
+                        klines_data,
+                        preformation_check_start_index,
+                        formation_index,
+                    )
 
         self._update_block_lifetimes(klines_data)
 

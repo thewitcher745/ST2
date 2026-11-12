@@ -27,6 +27,7 @@ class Block(ABC):
         start_index: int,
         start_time: Timestamp,
         invalidation_price: float,
+        prior_atr: float | None = None,
     ):
         self.base_candle_index: int = base_candle_index
         self.base_candle_time: Timestamp = base_candle_time
@@ -44,6 +45,7 @@ class Block(ABC):
         self.end_time: Optional[Timestamp] = None
         self.end_index: Optional[int] = None
         self.invalidation_price: float = invalidation_price
+        self.prior_atr: float | None = prior_atr
 
         # The positions associated with (derived from) the block
         self.positions: list[Position] = []
@@ -89,6 +91,7 @@ class Block(ABC):
             "direction": self.direction,
             "low": self.low,
             "high": self.high,
+            "prior_atr": self.prior_atr,
             "start_time": self.start_time,
             "base_candle_index": self.base_candle_index,
             "base_candle_time": self.base_candle_time,

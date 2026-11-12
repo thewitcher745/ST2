@@ -46,6 +46,8 @@ class Config:
     timeframe: str
     target_coeff: float
     stoploss_coeff: float
+    block_atr_coeff: float = 1.5  # Zero disables the ATR height filter.
+    atr_exit_coeff: float = 2.0
     target_setup_function: str
     stoploss_setup_function: str
     min_block_height_percentage: float
