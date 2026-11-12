@@ -45,6 +45,7 @@ Set `target_setup_function` to a method in [TargetProvider](../src/logic/positio
 
 | Method | Targets | Height basis | Exit shares |
 | --- | --- | --- | --- |
+| `atr` | T1 | Prior 14-candle average range | 100% at T1; paired with stop method `atr` |
 | `default` | T1–T4 | Actual block height | 25% each |
 | `default_t1_only` | T1 | Actual block height | 100% at T1 |
 | `default_t1_t2_only` | T1–T2 | Actual block height | 50% each |
@@ -73,6 +74,7 @@ The stop array is a schedule indexed by the number of targets already reached: `
 
 | Method | Initial distance basis | Later behavior |
 | --- | --- | --- |
+| `atr` | Prior 14-candle average range times `atr_exit_coeff` | Fixed stop; paired with target method `atr`. |
 | `default` | Actual block height | Keep the initial stop. |
 | `trailing_breakeven_t1` | Actual block height | Move to entry after T1. |
 | `trailing_breakeven_t2` | Actual block height | Move to entry after T2. |
@@ -89,6 +91,24 @@ Breakeven at T2: [S0, S0, entry, entry]
 ```
 
 These are discrete breakeven schedules; they do not continuously trail market price. A breakeven trigger has an effect only if quantity remains after that target. Use T2 stop methods with at least two targets: their current implementation creates two initial stop slots even for a one-target plan.
+
+## ATR exits at 1:1 reward/risk
+
+Select `atr` for both `target_setup_function` and `stoploss_setup_function`. Each block stores `prior_atr`, calculated once from the 14 candles strictly before its base candle:
+
+```text
+A = sum(high[i] - low[i] for i in base_index-14 .. base_index-1) / 14
+D = A * atr_exit_coeff
+
+Long:  target = entry + D, stop = entry - D
+Short: target = entry - D, stop = entry + D
+```
+
+This strategy's ATR uses arithmetic mean candle ranges without previous-close gaps or Wilder smoothing. It uses the full wick-to-wick base-candle height for the independent admission rule `height > A * block_atr_coeff`; setting that coefficient to `0` disables the ATR height filter. Percentage-height filters remain in effect.
+
+The plan exits all quantity at one target and keeps one fixed stop. `atr_exit_coeff` controls both distances; `target_coeff`, `stoploss_coeff`, and refinement do not affect it. Mixed ATR/height-based method selection raises `ValueError` to preserve the 1:1 ratio. Invalid exit coefficients and missing ATR also raise errors when a position is constructed directly. Normal block admission excludes candidates without usable ATR before constructing a position.
+
+Preformation checks using `level_stoploss` and activation checks use the same ATR stop. Later bounces reuse the original block's ATR. Set `bounce_target_threshold=1` for the single-target plan.
 
 ## Example
 

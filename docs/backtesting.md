@@ -38,6 +38,34 @@ python run_backtest.py --backtest_output_dir first_run
 
 No Telegram messages are sent by this entry point. There are no CLI start/end date or sweep-range options; edit the script. The runner executes at module level, so importing `run_backtest` also launches its experiment. Import the classes under `src/backtest/` when writing a separate analysis script.
 
+## Compare positions before and after the ATR filter
+
+[run_atr_filter_comparison.py](../run_atr_filter_comparison.py) runs the same strategy twice against the same cached candles: first with `block_atr_coeff=0`, then with the requested positive coefficient. Targets, stops, preformation rules, percentage-height filters, and bounce settings stay identical between runs, isolating the ATR height filter's effect.
+
+```bash
+python run_atr_filter_comparison.py --symbols BTCUSDT XAUUSDT --atr-coeff 1.5
+```
+
+Defaults are January 1 through October 1, 2026, the timeframe from the selected configuration, and cached files under `data/klines/default/`. The script uses local Feather files with the same exact symbol/timeframe/date filenames as `LocalDataProvider`. It reports a missing cache instead of downloading candles. To select another existing dataset or strategy:
+
+```bash
+python run_atr_filter_comparison.py --symbols BTCUSDT --config env_bat_files/.env.config.btc_1h --timeframe 1h --start 20260101 --end 20261001 --atr-coeff 1.5
+```
+
+The console prints before, after, removed, and pass percentages for accepted blocks, generated positions, entered trades, and closed trades, per symbol and overall. **Position pass percentage is `100 * positions_after / positions_before`.** Generated positions include initial attempts, bounces, and setups that never entered. Entered and closed trades have separate percentages and denominators. A zero baseline displays `N/A`; overall percentages use summed counts rather than averaging per-symbol percentages. If ATR exits are selected, their history requirements still apply in the baseline with the height filter disabled.
+
+Reports are written under `outputs/atr_filter_comparisons/<timestamp>/`, or the exact directory supplied with `--output-dir`:
+
+| File | Contents |
+| --- | --- |
+| `summary.csv` | Before/after counts, removals, and pass percentages by symbol and long/short direction, plus overall totals. |
+| `comparison.png` | Before/after position and entered-trade counts with pass percentages. |
+| `positions_before.csv`, `positions_after.csv` | Individual attempts, block heights, prior ATR, height/ATR ratios, required heights, pass status, and simulation outcomes. |
+| `blocks_before.csv`, `blocks_after.csv` | Accepted blocks before/after the filter, with the same ATR diagnostics. |
+| `config.json` | Selected strategy settings, data sources, coefficient, and percentage definitions. |
+
+Every baseline position and block is marked with `passes_atr_filter`; rejected rows record whether ATR was unavailable or the base height failed the strict threshold. The two runs use fresh managers, and the script restores the configured coefficient after each run.
+
 ## Execution flow
 
 1. [ConfigurationGenerator](../src/backtest/config_generator.py) enumerates the product of the parameter lists and creates a 12-character MD5-based case ID from each combination dictionary.

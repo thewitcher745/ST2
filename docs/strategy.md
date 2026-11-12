@@ -81,6 +81,7 @@ Each block records:
 | `msb_kline_index` | Candle index of the broken pivot. |
 | `low`, `high`, `height` | Zone boundaries and `high - low`. |
 | `height_percentage` | `100 * (high - low) / ((high + low) / 2)`. |
+| `prior_atr` | Arithmetic mean of the 14 individual high-low ranges strictly before the base candle, or `None` when unavailable. |
 | `start_index`, `start_time` | Formation initially, then activation after any waiting rule. |
 | `invalidation_price` | Structural level whose breach by a close ends the block. |
 | `end_index`, `end_time` | Effective end after invalidation; otherwise `None`. |
@@ -98,9 +99,12 @@ Filters are applied before position generation:
 | `block_types` | Keep a slash-separated selection, for example `OB/BB` or `OB/MB/BB`. |
 | `min_block_height_percentage` | Inclusive minimum zone height as a percentage of the midpoint. |
 | `max_block_height_percentage` | Inclusive maximum zone height as a percentage of the midpoint. |
+| `block_atr_coeff` | When positive, require base-candle height strictly greater than `prior_atr * block_atr_coeff`; `0` disables this filter. |
 | `block_preformation_check_method` | Reject a candidate if a wick touches its configured preformation invalidation level. |
 
-The manager keeps potential blocks separately from accepted blocks. Potential blocks that fail the height filter still participate in structural cancellation propagation. Direction/type and preformation exclusions happen before admission to the potential-block list.
+The manager keeps potential blocks separately from accepted blocks. Potential blocks that fail percentage-height or ATR filters still participate in structural cancellation propagation. Direction/type and preformation exclusions happen before admission to the potential-block list. Candidates without usable ATR are retained only for structural cancellation when ATR is required; stop-based preformation checks cannot construct a position for them.
+
+Both structure engines compute ATR from exactly the 14 candles preceding each base candle, excluding the base candle and all later candles. ATR is the arithmetic mean of each candle's `high - low`, without previous-close gap adjustments or smoothing. Candidates with insufficient history, nonfinite or negative prior ranges, or a zero average are excluded when the ATR height filter or ATR exits are enabled. ATR exits require usable history even if `block_atr_coeff=0`. Older presets without the new settings default to a disabled ATR filter.
 
 The function named `is_block_formation_valid_vs_price_action` currently always returns `True`; its old candle-piercing check is inactive.
 

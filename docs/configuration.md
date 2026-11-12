@@ -49,6 +49,7 @@ The values in this table reflect the root [.env.config](../.env.config).
 | `min_block_height_percentage` | float | `0.1` | Inclusive minimum `100 * height / midpoint`. |
 | `max_block_height_percentage` | float | `3` | Inclusive maximum `100 * height / midpoint`. |
 | `refined_block_height_percentage` | float | `1` | Minimum distance basis for target/stop methods that refine small blocks. |
+| `block_atr_coeff` | float | `1.5` | Require base-candle height strictly greater than this times its prior 14-candle average range. Finite and nonnegative; `0` disables this filter. Class fallback is `0` for older presets. |
 | `block_formation_waiting_method` | string | `price_close` | `price_close`, `price_reach`, or disabled with empty/`none`; class fallback is `price_close`. |
 | `block_preformation_check_method` | string | `level_block` | `level_block`, `level_stoploss`, or disabled with empty/`none`/`false`/`0`/`no`; class fallback is `None`. |
 | `direction` | string | CLI `None` | `long`, `short`, or `both`; `None` also permits both. Set with `-d`. |
@@ -59,17 +60,44 @@ The values in this table reflect the root [.env.config](../.env.config).
 
 | Key | Type | Shared value | Meaning |
 | --- | --- | --- | --- |
-| `target_setup_function` | string | `small_blocks_refined` | Method name in `TargetProvider`; see [all target methods](positions.md#all-target-methods). |
-| `stoploss_setup_function` | string | `small_blocks_refined_trailing_breakeven_t1` | Method name in `StoplossProvider`; see [all stop methods](positions.md#all-stop-methods). |
+| `target_setup_function` | string | `atr` | Method name in `TargetProvider`; see [all target methods](positions.md#all-target-methods). |
+| `stoploss_setup_function` | string | `atr` | Method name in `StoplossProvider`; see [all stop methods](positions.md#all-stop-methods). |
 | `target_coeff` | float | `1` | Multiplier for each target's height-based spacing. |
 | `stoploss_coeff` | float | `1.5` | Multiplier for the initial stop distance from entry. |
+| `atr_exit_coeff` | float | `1` | Shared ATR target and stop multiplier. Finite and positive; class fallback is `1`. Both setup functions must be `atr`. |
 | `max_bounces` | integer | `2` | Maximum total position attempts from a block, including the initial attempt. |
 | `bounce_target_threshold` | integer | `1` | Target number that allows the next bounce; use `1..target_count`. |
 | `usdt_per_trade` | float | `100` | Fixed margin amount per simulated position. |
 | `leverage` | float | `20` | Notional multiplier and advertised signal leverage. |
 | `leverage_type` | string | `cross` | Label in Telegram messages, typically `cross` or `isolated`. |
 
-Target and stop method names are resolved with `getattr`; a typo fails when a position is constructed. There is no comprehensive startup validation of coefficient signs, bounce settings, or combinations of target and stop methods. Use positive coefficients, positive capital and leverage, and a bounce threshold within the selected target count.
+Target and stop method names are resolved with `getattr`; a typo fails when a position is constructed. ATR methods validate their paired selection and shared coefficient when building a position. Other methods do not comprehensively validate coefficient signs, bounce settings, or method combinations. Use positive coefficients, positive capital and leverage, and a bounce threshold within the selected target count.
+
+The root configuration enables ATR filtering and exits:
+
+```dotenv
+block_atr_coeff=1.5
+atr_exit_coeff=1
+target_setup_function="atr"
+stoploss_setup_function="atr"
+```
+
+ATR here means the arithmetic average of the individual `high - low` ranges of the 14 candles strictly before each base candle. It excludes the base candle, previous-close gap adjustments, and smoothing. Both structure engines use the same calculation. The `atr` methods use one full-quantity target and a fixed stop equally distant from entry, giving 1:1 reward/risk. They ignore `target_coeff`, `stoploss_coeff`, and small-block refinement. Use `bounce_target_threshold=1` with this single-target plan.
+
+The minimum/maximum percentage-height filters still apply alongside `block_atr_coeff`. Fewer than 14 prior candles, nonfinite or negative historical ranges, or a zero average make ATR unavailable; those candidates are excluded when ATR filtering or exits are enabled. Older presets retain their existing plans and default to a disabled ATR height filter; `.env.config.base` explicitly includes `block_atr_coeff=0` and `atr_exit_coeff=1`.
+
+`run_backtest.py` also overrides target and stop methods through its `params_range_dict`. To backtest ATR exits, select both ATR methods there and sweep the two new coefficients, for example:
+
+```python
+params_range_dict = {
+    "target_setup_function": ["atr"],
+    "stoploss_setup_function": ["atr"],
+    "block_atr_coeff": [1.5],
+    "atr_exit_coeff": [1.0, 1.5, 2.0],
+}
+```
+
+Additional symbol, timeframe, block-type, or bounce settings can still be swept. Varying the old `target_coeff` and `stoploss_coeff` has no effect on ATR exits.
 
 ## Runtime, network, and retries
 
